@@ -4,7 +4,18 @@
 
 #define BAUD 9600
 
-static uint8_t has_pending_tx = 0;
+static uint8_t has_pending_tx(void)
+{
+  return ems_send_buffer.sent < ems_send_buffer.len;
+}
+
+static uint8_t next_tx_byte(void)
+{
+  if (has_pending_tx()) {
+    return ems_send_buffer.data[ems_send_buffer.sent++];
+  }
+  return 0;
+}
 
 #if !defined(EMS_SOFT_UART)
 #define USE_USART EMS_USE_USART
@@ -20,8 +31,8 @@ ems_uart_init(void)
 
 ISR(usart(USART,_TX_vect))
 {
-  if (ems_send_buffer.sent < ems_send_buffer.len) {
-    usart(UDR) = ems_send_buffer.data[ems_send_buffer.sent++];
+  if (has_pending_tx()) {
+    usart(UDR) = next_tx_byte();
   } else {
     /* Disable this interrupt */
     usart(UCSR,B) &= ~(_BV(usart(TXCIE)));
@@ -38,7 +49,7 @@ ISR(usart(USART,_RX_vect))
     ems_uart_process_input_byte(data, status);
   }
 
-  if (has_pending_tx) {
+  if (has_pending_tx()) {
     usart(UCSR,B) &= ~_BV(usart(RXCIE));
     usart(UCSR,B) |= _BV(usart(TXCIE));
   }
@@ -49,8 +60,10 @@ ISR(usart(USART,_RX_vect))
 #define PRESCALE 8
 #define BIT_TIME  ((uint8_t)((F_CPU / BAUD) / PRESCALE))
 
-static volatile uint8_t current_rx_mask;
-static volatile uint8_t current_rx_data;
+static volatile uint8_t current_mask;
+static volatile uint8_t current_data;
+static volatile uint8_t sending = 0;
+static volatile uint8_t send_counter = 0;
 
 static void set_rx_int(uint8_t enable)
 {
@@ -80,8 +93,8 @@ ISR(EMS_SOFTRX_INT_VECTOR)
 {
   TC2_COUNTER_COMPARE = TC2_COUNTER_CURRENT + (uint8_t)((BIT_TIME * 3) / 2);// scan 1.5 bits after start
 
-  current_rx_mask = 1;
-  current_rx_data = 0;
+  current_mask = 1;
+  current_data = 0;
 
   if (!PIN_HIGH(EMS_UART_RX)) {
     set_rx_int(0);
@@ -89,23 +102,57 @@ ISR(EMS_SOFTRX_INT_VECTOR)
   }
 }
 
+static void
+check_tx_or_go_to_rx(void)
+{
+  if (has_pending_tx()) {
+    sending = 1;
+    current_data = next_tx_byte();
+    send_counter = 9;
+    TC2_OUTPUT_COMPARE_SET;
+  } else {
+    sending = 0;
+    TC2_OUTPUT_COMPARE_NONE;
+    TC2_INT_COMPARE_OFF;
+    set_rx_int(1);
+  }
+}
+
 ISR(TC2_VECTOR_COMPARE)
 {
   uint8_t in = PIN_HIGH(EMS_UART_RX);
-  if (current_rx_mask) {
-    if (in) {
-      current_rx_data |= current_rx_mask;
-    }
-    current_rx_mask <<= 1;
-    TC2_COUNTER_COMPARE += BIT_TIME;
-  } else {
-    uint8_t status = in ? 0 : _BV(FE);
-    ems_uart_process_input_byte(current_rx_data, status);
-    if (has_pending_tx) {
-      /* start TX */
+  TC2_COUNTER_COMPARE += BIT_TIME;
+
+  if (sending) {
+    if (send_counter == 0) {
+      /* byte including stop is done */
+      check_tx_or_go_to_rx();
     } else {
-      TC2_INT_COMPARE_OFF;
-      set_rx_int(1);
+      send_counter--;
+
+      uint8_t lastbit = send_counter == 8 ? 0 : (current_data & _BV(send_counter));
+      uint8_t nextbit = send_counter == 0 ? 1 : (current_data & _BV(send_counter - 1)); // need FE?
+
+      if ((lastbit && !in) || (!lastbit && in)) {
+        /* abort */
+      }
+
+      if (nextbit) {
+        TC2_OUTPUT_COMPARE_SET;
+      } else {
+        TC2_OUTPUT_COMPARE_CLEAR;
+      }
+    }
+  } else /* receiving */ {
+    if (current_mask) {
+      if (in) {
+        current_data |= current_mask;
+      }
+      current_mask <<= 1;
+    } else {
+      uint8_t status = in ? 0 : _BV(FE);
+      ems_uart_process_input_byte(current_data, status);
+      check_tx_or_go_to_rx();
     }
   }
 }
@@ -113,15 +160,6 @@ ISR(TC2_VECTOR_COMPARE)
 #endif /* !EMS_SOFT_UART */
 
 #if 0
-
-volatile u8 stx_count;
-u8 stx_data;
-
-volatile u8 srx_done;
-u8 srx_data;
-u8 srx_mask;
-u8 srx_tmp;
-
 
 /* send:
  */
@@ -155,71 +193,5 @@ if ( !(sr & (UART_SR_FE)) )
         ems_flag |= 1;
     }
 }
-
-
-void suart_init( void )
-{
-	SBIT(PORTD,STX) = 1;
-    TCCR0B = 1 << CS01 | 1<<CS00;   // clk/64
-		    TIMSK0 = 1 << OCIE0A;	// enable output compare interrupt
-
-		    EICRA = 1 << ISC01;	    // falling edge
-	    EIMSK = 1 << INT0;		// enable edge interrupt
-
-	    			stx_count = 0;		    // nothing to sent
-	    				    srx_done = 0;	        // nothing received
-	    					STXDDR |= 1 << STX;	    // TX output
-}
-
-ISR (INT0_vect)    // rx start
-{
-    OCR0B = TCNT0 + (u8)((BIT_TIME * 3) / 2);// scan 1.5 bits after start
-
-    srx_tmp = 0;        // clear bit storage
-    srx_mask = 1;        // bit mask
-    if( !(SRXPIN & 1<<SRX))  {  // still low
-	EIMSK &= ~(1 << INT0);	    // disable edge interrupt
-	TIMSK0 = 1<<OCIE0A^1<<OCIE0B;  // wait for first bit
-    }
-    TIFR0 = 1<<OCF0B;      // clear pending interrupt ? why does that output compare int occur?
-    EIFR |= (1 << INTF0);	    // clear any pending edge interrupt
-}
-
-ISR (TIMER0_COMPB_vect)
-{
-    u8 in = SRXPIN;      // scan rx line
-    if (srx_mask) {
-	if (in & 1 << SRX)
-	    srx_tmp |= srx_mask;
-	srx_mask <<= 1;
-	OCR0B += BIT_TIME;      // next bit slice
-    } else {
-	srx_data = srx_tmp;      // store rx data
-	TIMSK0 = 1<<OCIE0A;        // enable tx and wait for start
-	EIFR |= (1 << INTF0);	    // clear any pending edge interrupt: This hinders the in0-vect from beeing triggerd again just now which may occur by falling edges in the serial data bits
-	EIMSK = 1 << INT0;  // reenable edge interrupt
-    }
-}
-
-ISR (TIMER0_COMPA_vect)    // tx bit
-{
-    u8 dout;
-    u8 count;
-
-    OCR0A += BIT_TIME;      // next bit slice
-    count = stx_count;
-
-    if (count) {
-	stx_count = --count;    // count down
-	dout = 0;
-	if (count != 9) {      // no start bit
-	    if (!(stx_data & 1))    // test inverted data
-		dout = 1;
-	    stx_data >>= 1;      // shift zero in from left
-	}
-	SBIT(PORTD,STX) = dout;
-    }
-}
-
 
 #endif
