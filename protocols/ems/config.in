@@ -1,0 +1,28 @@
+dep_bool_menu "EMS Support" EMS_SUPPORT $TCP_SUPPORT $ARCH_AVR
+	usart_count_used
+	if [ $USARTS -gt $USARTS_USED ]; then
+		dep_bool 'Use software UART' EMS_SOFT_UART $EMS_SUPPORT
+		if [ "$EMS_SOFT_UART" != "y" ]; then
+			choice '    EMS usart select' "$(usart_choice EMS)"
+			usart_process_choice EMS
+		fi
+	else
+		define_bool EMS_SOFT_UART y
+		comment "Using software UART, no free USART ($USARTS_USED/$USARTS)."
+	fi
+	if [ "$EMS_BUFFER_LEN" = "" ] ; then
+		EMS_BUFFER_LEN=255
+	fi
+	if [ "$EMS_BUFFER_LEN" -gt "$NET_MAX_FRAME_LENGTH" ] ; then
+		EMS_BUFFER_LEN=$NET_MAX_FRAME_LENGTH
+	fi
+	if [ "$CONFIG_EXPERT" = "y" ] ; then
+		int    "EMS Buffer Length" EMS_BUFFER_LEN ""
+	else
+		define_int EMS_BUFFER_LEN 32
+	fi
+	int    "EMS TCP Port" EMS_PORT 7950
+	comment  "Debugging Flags"
+	dep_bool 'EMS Debug' DEBUG_EMS $EMS_SUPPORT
+endmenu
+

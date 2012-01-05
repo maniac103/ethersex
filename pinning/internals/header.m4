@@ -129,7 +129,7 @@ define(`RC5_USE_INT', `dnl
 define(`RFM12_ASK_SENSE_USE_INT', `dnl
 /* rfm12 ask sense interrupt line */
 #define RFM12_ASKINT_PIN INT$1
-#define RFM12_ASKINT_ISC _ISC($1,0)
+#define RFM12_ASKINT_ISC _ISC($1,1)
 #define RFM12_ASKINT_ISCMASK (_ISC($1,0) | _ISC($1,1))
 #define RFM12_ASKINT_VECTOR INT$1`_vect'
 ')
@@ -140,6 +140,14 @@ define(`USB_USE_INT', `dnl
 #define USB_INT_VECTOR INT$1`_vect'
 #define USB_INTR_CFG_HACK(no) ((1 << ISC ## no ## 0) | (1 << ISC ## no ## 0))
 #define USB_INTR_CFG_SET USB_INTR_CFG_HACK($1)
+')
+
+define(`EMS_USE_INT', `dnl
+/* EMS interrupt line (Soft UART RX) */
+#define EMS_SOFTRX_INT_PIN INT$1
+#define EMS_SOFTRX_INT_VECTOR INT$1`_vect'
+#define EMS_SOFTRX_INT_ISC _ISC($1,0)
+#define EMS_SOFTRX_INT_ISCMASK (_ISC($1,0) | _ISC($1,1))
 ')
 
 define(`DCF77_USE_PCINT', `dnl

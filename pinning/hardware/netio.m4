@@ -83,3 +83,9 @@ ifdef(`conf_HD44780', `
   pin(HD44780_D6, PD6)
   pin(HD44780_D7, PD7)
 ')
+
+ifdef(`conf_EMS', `
+  pin(EMS_UART_RX, PD2)
+  pin(EMS_UART_TX, PD3)
+  EMS_USE_INT(0)
+')
