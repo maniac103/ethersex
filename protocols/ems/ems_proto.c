@@ -73,11 +73,13 @@ process_prepare_buffer(void)
   uint8_t crc = calc_checksum(prepare_buffer, prepare_fill);
   if (crc != prepare_buffer[prepare_fill]) {
     UPDATE_STATS(bad_packets, 1);
+    ems_set_led(LED_RED, 1, 2);
     return;
   }
 
   UPDATE_STATS(good_bytes, prepare_fill);
   UPDATE_STATS(good_packets, 1);
+  ems_set_led(LED_GREEN, 1, 1);
 
   /* insert start-of-frame into recv buffer */
   /* copy prepare buffer to recv buf */

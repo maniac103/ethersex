@@ -34,11 +34,46 @@ struct ems_buffer ems_recv_buffer;
 #ifdef DEBUG_EMS
 struct ems_stats ems_stats_buffer;
 #endif
+uint8_t led_timeout[EMS_NUM_LEDS];
 
 void
 ems_init(void)
 {
   ems_uart_init();
+}
+
+void
+ems_periodic_timeout(void)
+{
+  uint8_t i;
+  for (i = 0; i < EMS_NUM_LEDS; i++) {
+    if (led_timeout[i] > 0) {
+      led_timeout[i]--;
+      if (led_timeout[i] == 0) {
+        ems_set_led(i, 0, 0);
+      }
+    }
+  }
+}
+
+void ems_set_led(uint8_t led, uint8_t enable, uint8_t timeout)
+{
+  if (enable) {
+    switch (led) {
+      case LED_BLUE: PIN_SET(EMS_LED_BLUE); break;
+      case LED_GREEN: PIN_SET(EMS_LED_GREEN); break;
+      case LED_RED: PIN_SET(EMS_LED_RED); break;
+      default: return;
+    }
+    led_timeout[led] = timeout;
+  } else {
+    switch (led) {
+      case LED_BLUE: PIN_CLEAR(EMS_LED_BLUE); break;
+      case LED_GREEN: PIN_CLEAR(EMS_LED_GREEN); break;
+      case LED_RED: PIN_CLEAR(EMS_LED_RED); break;
+      default: return;
+    }
+  }
 }
 
 uint8_t
@@ -92,6 +127,6 @@ ems_uart_process_input_byte(uint8_t data, uint8_t status)
   dnl order via the Makefile.
   
   header(protocols/ems/ems.h)
-
   net_init(ems_init)
+  timer(100, ems_periodic_timeout())
 */

@@ -37,6 +37,7 @@ ISR(usart(USART,_TX_vect))
     /* Disable this interrupt */
     usart(UCSR,B) &= ~(_BV(usart(TXCIE)));
     usart(UCSR,B) |= _BV(usart(RXCIE));
+    ems_set_led(LED_BLUE, 0, 0);
   }
 }
 
@@ -50,6 +51,7 @@ ISR(usart(USART,_RX_vect))
   }
 
   if (has_pending_tx()) {
+    ems_set_led(LED_BLUE, 1, 0);
     usart(UCSR,B) &= ~_BV(usart(RXCIE));
     usart(UCSR,B) |= _BV(usart(TXCIE));
   }
@@ -106,11 +108,13 @@ static void
 check_tx_or_go_to_rx(void)
 {
   if (has_pending_tx()) {
+    ems_set_led(LED_BLUE, 1, 0);
     sending = 1;
     current_data = next_tx_byte();
     send_counter = 9;
     TC2_OUTPUT_COMPARE_SET;
   } else {
+    ems_set_led(LED_BLUE, 0, 0);
     sending = 0;
     TC2_OUTPUT_COMPARE_NONE;
     TC2_INT_COMPARE_OFF;

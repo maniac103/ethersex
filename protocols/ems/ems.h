@@ -55,10 +55,17 @@ struct ems_buffer {
 
 void ems_init(void);
 void ems_process(void);
+void ems_periodic_timeout(void);
 uint8_t ems_process_txdata(uint8_t *data, uint16_t len);
 
 void ems_uart_init(void);
 void ems_uart_process_input_byte(uint8_t data, uint8_t status);
+
+#define LED_BLUE     0
+#define LED_GREEN    1
+#define LED_RED      2
+#define EMS_NUM_LEDS 3
+void ems_set_led(uint8_t led, uint8_t enable, uint8_t timeout /* x 100ms */);
 
 extern struct ems_uart_input_buffer ems_input_buffer;
 extern struct ems_buffer ems_send_buffer;
