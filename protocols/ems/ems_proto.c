@@ -77,12 +77,34 @@ process_prepare_buffer(void)
     return;
   }
 
+  uint16_t needed = prepare_fill + 4; /* frame start + len + csum */
+  if (ems_recv_buffer.len + needed >= EMS_BUFFER_LEN) {
+    UPDATE_STATS(dropped_packets, 1);
+    UPDATE_STATS(dropped_bytes, prepare_fill);
+    return;
+  }
+
   UPDATE_STATS(good_bytes, prepare_fill);
   UPDATE_STATS(good_packets, 1);
   ems_set_led(LED_GREEN, 1, 1);
 
-  /* insert start-of-frame into recv buffer */
-  /* copy prepare buffer to recv buf */
+  /* start-of-frame */
+  ems_recv_buffer.data[ems_recv_buffer.len++] = 0xaa;
+  ems_recv_buffer.data[ems_recv_buffer.len++] = 0x55;
+
+  /* len */
+  ems_recv_buffer.data[ems_recv_buffer.len++] = prepare_fill;
+
+  /* data */
+  uint8_t csum = 0;
+  for (uint8_t i = 0; i < prepare_fill; i++) {
+    uint8_t byte = prepare_buffer[i];
+    ems_recv_buffer.data[ems_recv_buffer.len++] = byte;
+    csum ^= byte;
+  }
+
+  /* checksum */
+  ems_recv_buffer.data[ems_recv_buffer.len++] = csum;
 }
 
 void

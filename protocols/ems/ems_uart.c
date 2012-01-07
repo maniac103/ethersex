@@ -138,7 +138,7 @@ ISR(TC2_VECTOR_COMPARE)
       uint8_t nextbit = send_counter == 0 ? 1 : (current_data & _BV(send_counter - 1)); // need FE?
 
       if ((lastbit && !in) || (!lastbit && in)) {
-        /* abort */
+        /* XXX: abort */
       }
 
       if (nextbit) {
