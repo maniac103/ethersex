@@ -3,17 +3,47 @@
 #include "ems.h"
 
 #define BAUD 9600
+#define OUR_EMS_ADDRESS 0xb
 
-static uint8_t has_pending_tx(void)
+/*
+ * theory:
+ * Polling: address | 0x80
+ * Answer:
+ * 0) nothing to send: <addr> <break>
+ * 1) Broadcast: <addr> 0x0 <data> ... <break>
+ * 2) Send without request: <addr> <dest> <data> ... <crc> <break>
+ * 3) Send with request: <addr> <dest | 0x80> <data> ... <crc> <break>
+ *
+ * -> send <addr> <txdata> <break>
+ *
+ * after tx byte compare with rx
+ * if mismatch -> abort with <break>
+ */
+
+/* test data to send: "0B 88 02 00 06 9A" */
+
+#undef REAL_TX
+
+#define STATE_RX       0
+#define STATE_TX_ADDR  1
+#define STATE_TX_DATA  2
+#define STATE_TX_BREAK 3
+
+static uint8_t state = STATE_RX;
+
+static inline uint8_t is_polled(void)
 {
-  return ems_send_buffer.sent < ems_send_buffer.len;
+  return (ems_poll_address == (OUR_EMS_ADDRESS | 0x80));
 }
 
-static uint8_t next_tx_byte(void)
+static uint8_t get_next_tx_byte(uint8_t *byte)
 {
-  if (has_pending_tx()) {
-    return ems_send_buffer.data[ems_send_buffer.sent++];
+#ifdef REAL_TX
+  if (ems_send_buffer.sent < ems_send_buffer.len) {
+    *byte = ems_send_buffer.data[ems_send_buffer.sent++];
+    return 1;
   }
+#endif
   return 0;
 }
 
@@ -31,13 +61,29 @@ ems_uart_init(void)
 
 ISR(usart(USART,_TX_vect))
 {
-  if (has_pending_tx()) {
-    usart(UDR) = next_tx_byte();
-  } else {
-    /* Disable this interrupt */
-    usart(UCSR,B) &= ~(_BV(usart(TXCIE)));
-    usart(UCSR,B) |= _BV(usart(RXCIE));
-    ems_set_led(LED_BLUE, 0, 0);
+  switch (state) {
+    case STATE_TX_ADDR:
+      usart(UDR) = OUR_EMS_ADDRESS;
+      state = STATE_TX_DATA;
+      break;
+    case STATE_TX_DATA:
+      {
+        uint8_t byte;
+        if (get_next_tx_byte(&byte)) {
+          usart(UDR) = byte;
+        } else {
+          /* XXX: send break */
+          state = STATE_TX_BREAK;
+        }
+      }
+      break;
+    case STATE_TX_BREAK:
+    default:
+      /* Disable this interrupt */
+      usart(UCSR,B) &= ~(_BV(usart(TXCIE)));
+      usart(UCSR,B) |= _BV(usart(RXCIE));
+      ems_set_led(LED_BLUE, 0, 0);
+      break;
   }
 }
 
@@ -50,10 +96,11 @@ ISR(usart(USART,_RX_vect))
     ems_uart_process_input_byte(data, status);
   }
 
-  if (has_pending_tx()) {
+  if (is_polled()) {
     ems_set_led(LED_BLUE, 1, 0);
     usart(UCSR,B) &= ~_BV(usart(RXCIE));
     usart(UCSR,B) |= _BV(usart(TXCIE));
+    state = STATE_TX_ADDR;
   }
 }
 
@@ -64,7 +111,6 @@ ISR(usart(USART,_RX_vect))
 
 static volatile uint8_t current_mask;
 static volatile uint8_t current_data;
-static volatile uint8_t sending = 0;
 static volatile uint8_t send_counter = 0;
 
 static void set_rx_int(uint8_t enable)
@@ -105,20 +151,43 @@ ISR(EMS_SOFTRX_INT_VECTOR)
 }
 
 static void
+init_tx(uint8_t byte)
+{
+  current_data = byte;
+  send_counter = 9;
+  TC2_OUTPUT_COMPARE_SET;
+}
+
+static void
 check_tx_or_go_to_rx(void)
 {
-  if (has_pending_tx()) {
-    ems_set_led(LED_BLUE, 1, 0);
-    sending = 1;
-    current_data = next_tx_byte();
-    send_counter = 9;
-    TC2_OUTPUT_COMPARE_SET;
-  } else {
-    ems_set_led(LED_BLUE, 0, 0);
-    sending = 0;
-    TC2_OUTPUT_COMPARE_NONE;
-    TC2_INT_COMPARE_OFF;
-    set_rx_int(1);
+  switch (state) {
+    case STATE_RX:
+      if (is_polled()) {
+        ems_set_led(LED_BLUE, 1, 0);
+        state = STATE_TX_ADDR;
+        init_tx(OUR_EMS_ADDRESS);
+      }
+      break;
+    case STATE_TX_ADDR:
+      {
+        uint8_t byte;
+        if (get_next_tx_byte(&byte)) {
+          init_tx(byte);
+        } else {
+          state = STATE_TX_BREAK;
+          init_tx(0);
+        }
+      }
+      break;
+    case STATE_TX_BREAK:
+    default:
+      ems_set_led(LED_BLUE, 0, 0);
+      state = STATE_RX;
+      TC2_OUTPUT_COMPARE_NONE;
+      TC2_INT_COMPARE_OFF;
+      set_rx_int(1);
+      break;
   }
 }
 
@@ -127,15 +196,31 @@ ISR(TC2_VECTOR_COMPARE)
   uint8_t in = PIN_HIGH(EMS_UART_RX);
   TC2_COUNTER_COMPARE += BIT_TIME;
 
-  if (sending) {
+  if (state == STATE_RX) {
+    if (current_mask) {
+      if (in) {
+        current_data |= current_mask;
+      }
+      current_mask <<= 1;
+    } else {
+      uint8_t status = in ? 0 : _BV(FE);
+      ems_uart_process_input_byte(current_data, status);
+      check_tx_or_go_to_rx();
+    }
+  } else /* transmit */ {
     if (send_counter == 0) {
-      /* byte including stop is done */
       check_tx_or_go_to_rx();
     } else {
       send_counter--;
 
       uint8_t lastbit = send_counter == 8 ? 0 : (current_data & _BV(send_counter));
-      uint8_t nextbit = send_counter == 0 ? 1 : (current_data & _BV(send_counter - 1)); // need FE?
+      uint8_t nextbit;
+
+      if (send_counter == 0) {
+        nextbit = state == STATE_TX_BREAK ? 0 : 1;
+      } else {
+        nextbit = (current_data & _BV(send_counter - 1));
+      }
 
       if ((lastbit && !in) || (!lastbit && in)) {
         /* XXX: abort */
@@ -147,55 +232,8 @@ ISR(TC2_VECTOR_COMPARE)
         TC2_OUTPUT_COMPARE_CLEAR;
       }
     }
-  } else /* receiving */ {
-    if (current_mask) {
-      if (in) {
-        current_data |= current_mask;
-      }
-      current_mask <<= 1;
-    } else {
-      uint8_t status = in ? 0 : _BV(FE);
-      ems_uart_process_input_byte(current_data, status);
-      check_tx_or_go_to_rx();
-    }
   }
 }
 
 #endif /* !EMS_SOFT_UART */
 
-#if 0
-
-/* send:
- */
-dr = rx_data;
-
-/* sending */
-if ( ems_flag & 1 )
-{
-    if ( dr == 0x0b )
-    {
-        /* send uart break */
-    }
-    ems_flag &= ~1;
-}
-
-if ( ems_cnt == 0 )
-    ems_adr = dr;
-if ( (ems_cnt == 1) && (dr!=0) && (ems_adr&0x80) )
-{
-    ems_cnt = 0;
-    ems_adr = dr;
-}
-/* ignore frame error */
-if ( !(sr & (UART_SR_FE)) )
-{
-    ems_cnt++;
-} else {
-    if ( ems_adr == 0x8b )
-    {
-        tx_data = 0x0b;
-        ems_flag |= 1;
-    }
-}
-
-#endif

@@ -68,6 +68,7 @@ void ems_uart_process_input_byte(uint8_t data, uint8_t status);
 #define EMS_NUM_LEDS 3
 void ems_set_led(uint8_t led, uint8_t enable, uint8_t timeout /* x 100ms */);
 
+extern uint8_t ems_poll_address;
 extern struct ems_uart_input_buffer ems_input_buffer;
 extern struct ems_buffer ems_send_buffer;
 extern struct ems_buffer ems_recv_buffer;
