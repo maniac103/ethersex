@@ -1,15 +1,5 @@
 dep_bool_menu "EMS Support" EMS_SUPPORT $TCP_SUPPORT $ARCH_AVR
-	usart_count_used
-	if [ $USARTS -gt $USARTS_USED ]; then
-		dep_bool 'Use software UART' EMS_SOFT_UART $EMS_SUPPORT
-		if [ "$EMS_SOFT_UART" != "y" ]; then
-			choice '    EMS usart select' "$(usart_choice EMS)"
-			usart_process_choice EMS
-		fi
-	else
-		define_bool EMS_SOFT_UART y
-		comment "Using software UART, no free USART ($USARTS_USED/$USARTS)."
-	fi
+	dep_bool 'Use software UART' EMS_SOFT_UART $EMS_SUPPORT
 	if [ "$EMS_BUFFER_LEN" = "" ] ; then
 		EMS_BUFFER_LEN=255
 	fi

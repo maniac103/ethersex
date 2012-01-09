@@ -29,7 +29,11 @@
 #define STATE_TX_DATA  2
 #define STATE_TX_BREAK 3
 
+#define PRESCALE 8
+#define BIT_TIME  ((uint8_t)((F_CPU / BAUD) / PRESCALE))
+
 static uint8_t state = STATE_RX;
+static volatile uint8_t bit_counter = 0;
 
 static inline uint8_t is_polled(void)
 {
@@ -48,7 +52,7 @@ static uint8_t get_next_tx_byte(uint8_t *byte)
 }
 
 #if !defined(EMS_SOFT_UART)
-#define USE_USART EMS_USE_USART
+#define USE_USART 1
 #include "core/usart.h"
 /* We generate our own usart init module, for our usart port */
 generate_usart_init()
@@ -57,6 +61,26 @@ void
 ems_uart_init(void)
 {
   usart_init();
+  TC2_PRESCALER_8;
+  TC2_MODE_CTC;
+}
+
+static void
+go_to_rx(void)
+{
+  usart(UCSR,B) |= _BV(usart(RXCIE));
+  ems_set_led(LED_BLUE, 0, 0);
+  state = STATE_RX;
+}
+
+ISR(TC2_VECTOR_COMPARE)
+{
+  bit_counter--;
+  if (bit_counter == 0) {
+    usart(UCSR,B) |= _BV(usart(TXEN));
+    TC2_INT_COMPARE_OFF;
+    go_to_rx();
+  }
 }
 
 ISR(usart(USART,_TX_vect))
@@ -72,7 +96,12 @@ ISR(usart(USART,_TX_vect))
         if (get_next_tx_byte(&byte)) {
           usart(UDR) = byte;
         } else {
-          /* XXX: send break */
+          PIN_CLEAR(EMS_UART_TX);
+          usart(UCSR,B) &= ~(_BV(usart(TXCIE)) | _BV(usart(RXCIE)) | _BV(usart(TXEN)));
+          bit_counter = 11;
+          TC2_COUNTER_COMPARE = BIT_TIME;
+          TC2_COUNTER_CURRENT = 0;
+          TC2_INT_COMPARE_ON;
           state = STATE_TX_BREAK;
         }
       }
@@ -81,8 +110,7 @@ ISR(usart(USART,_TX_vect))
     default:
       /* Disable this interrupt */
       usart(UCSR,B) &= ~(_BV(usart(TXCIE)));
-      usart(UCSR,B) |= _BV(usart(RXCIE));
-      ems_set_led(LED_BLUE, 0, 0);
+      go_to_rx();
       break;
   }
 }
