@@ -104,14 +104,14 @@ ems_uart_process_input_byte(uint8_t data, uint8_t status)
   static uint8_t last_data;
   uint8_t index = ems_input_buffer.count;
 
-  if (status & _BV(FE)) {
+  if (status & FRAMEEND) {
     /* end-of-frame */
     ems_input_buffer.data[index].data = 0;
     ems_input_buffer.data[index].control = 1; // XXX
     ems_input_buffer.count++;
     ems_poll_address = (packet_bytes == 1) ? last_data : 0;
     packet_bytes = 0;
-  } else if (status & (_BV(DOR) | _BV(UPE))) {
+  } else if (status & ERROR) {
     /* error -> drop */
   } else {
     ems_input_buffer.data[index].data = data;

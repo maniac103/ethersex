@@ -121,7 +121,12 @@ ISR(usart(USART,_RX_vect))
 
   while ((status = (usart(UCSR,A) & _BV(usart(RXC))))) {
     uint8_t data = usart(UDR);
-    ems_uart_process_input_byte(data, status);
+    uint8_t real_status = 0;
+
+    if (status & _BV(usart(FE))) real_status |= FRAMEEND;
+    if (status & (_BV(usart(DOR)) | _BV(usart(UPE)))) real_status |= ERROR;
+
+    ems_uart_process_input_byte(data, real_status);
   }
 
   if (is_polled()) {
@@ -231,7 +236,7 @@ ISR(TC2_VECTOR_COMPARE)
       }
       current_mask <<= 1;
     } else {
-      uint8_t status = in ? 0 : _BV(FE);
+      uint8_t status = in ? 0 : FRAMEEND;
       ems_uart_process_input_byte(current_data, status);
       check_tx_or_go_to_rx();
     }

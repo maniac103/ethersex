@@ -60,6 +60,9 @@ void ems_periodic_timeout(void);
 uint8_t ems_process_txdata(uint8_t *data, uint16_t len);
 
 void ems_uart_init(void);
+
+#define FRAMEEND _BV(0)
+#define ERROR    _BV(1)
 void ems_uart_process_input_byte(uint8_t data, uint8_t status);
 
 #define LED_BLUE     0
