@@ -132,8 +132,8 @@ ems_uart_process_input_byte(uint8_t data, uint8_t status)
   dnl ems_init call must be done after network_init (according to earlier
   dnl comments.  Therefore we initialize via net_init and control the
   dnl order via the Makefile.
-  
+
   header(protocols/ems/ems.h)
   net_init(ems_init)
-  timer(100, ems_periodic_timeout())
+  timer(5, ems_periodic_timeout())
 */
