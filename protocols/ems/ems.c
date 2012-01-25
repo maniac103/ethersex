@@ -41,6 +41,13 @@ void
 ems_init(void)
 {
   ems_uart_init();
+
+  PIN_CLEAR(EMS_LED_BLUE);
+  DDR_CONFIG_OUT(EMS_LED_BLUE);
+  PIN_CLEAR(EMS_LED_RED);
+  DDR_CONFIG_OUT(EMS_LED_RED);
+  PIN_CLEAR(EMS_LED_GREEN);
+  DDR_CONFIG_OUT(EMS_LED_GREEN);
 }
 
 void
