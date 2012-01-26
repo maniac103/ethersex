@@ -69,7 +69,7 @@ static void
 go_to_rx(void)
 {
   usart(UCSR,B) |= _BV(usart(RXCIE));
-  ems_set_led(LED_BLUE, 0, 0);
+  ems_set_led(LED_BLUE, 1, 10);
   state = STATE_RX;
 }
 
@@ -130,6 +130,7 @@ ISR(usart(USART,_RX_vect))
   }
 
   if (is_polled()) {
+    UPDATE_STATS(onebyte_own_packets, 1);
     ems_set_led(LED_BLUE, 1, 0);
     usart(UCSR,B) &= ~_BV(usart(RXCIE));
     usart(UCSR,B) |= _BV(usart(TXCIE));
@@ -215,7 +216,7 @@ check_tx_or_go_to_rx(void)
       break;
     case STATE_TX_BREAK:
     default:
-      ems_set_led(LED_BLUE, 0, 0);
+      ems_set_led(LED_BLUE, 1, 10);
       state = STATE_RX;
       TC2_OUTPUT_COMPARE_NONE;
       TC2_INT_COMPARE_OFF;
