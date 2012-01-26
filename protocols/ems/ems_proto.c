@@ -77,7 +77,7 @@ process_prepare_buffer(void)
     return;
   }
 
-  uint16_t needed = prepare_fill + 4; /* frame start + len + csum */
+  uint16_t needed = prepare_fill + 5; /* frame start + type + len + csum */
   if (ems_recv_buffer.len + needed >= EMS_BUFFER_LEN) {
     UPDATE_STATS(dropped_packets, 1);
     UPDATE_STATS(dropped_bytes, prepare_fill);
