@@ -351,8 +351,8 @@ void init_enc28j60(void)
     /* receive broadcast, multicast and unicast packets */
     write_control_register(REG_ERXFCON, _BV(BCEN) | _BV(MCEN) | _BV(UCEN));
 
-    /* configure leds: led a link status and receive activity, led b transmit activity */
-    write_phy(PHY_PHLCON, _BV(STRCH) | _BV(LACFG3) | _BV(LACFG2) | _BV(LBCFG0));
+    /* configure leds: led a transmit activity, led b link status and receive activity */
+    write_phy(PHY_PHLCON, _BV(STRCH) | _BV(LACFG0) | _BV(LBCFG3) | _BV(LBCFG2));
 
     /* enable interrupts */
     write_control_register(REG_EIE, _BV(INTIE) | _BV(LINKIE) | _BV(PKTIE) | _BV(TXIE) | _BV(TXERIF) | _BV(RXERIF));
