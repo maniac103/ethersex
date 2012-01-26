@@ -28,25 +28,58 @@
 
 #include "protocols/ecmd/ecmd-base.h"
 
-
+#ifdef DEBUG_EMS
 int16_t parse_cmd_ems_stats(char *cmd, char *output, uint16_t len)
 {
-    /*
-    int16_t chars = snprintf_P(output, len,
-                               PSTR("rx fe=%u, ov=%u, pe=%u, bf=%u"),
-                               ems_rx_frameerror,
-                               ems_rx_overflow,
-                               ems_rx_parityerror,
-                               ems_rx_bufferfull);
-			       */
-    int16_t chars = 0;
-    return ECMD_FINAL(chars);
+  struct ems_stats *stats = &ems_stats_buffer;
+
+  /* trick: use bytes on cmd as "connection specific static variables" */
+  if (cmd[0] != 23) {  /* indicator flag: real invocation:  0 */
+    cmd[0] = 23;       /*                 continuing call: 23 */
+    cmd[1] = 0;        /* counter for output lines */
+  } else {
+    cmd[1]++;          /* iterate to next output line */
+  }
+
+  enum {
+    CNT_TOTALBYTES = 0,
+    CNT_GOODBYTES,
+    CNT_DROPPEDBYTES,
+    CNT_GOODPACKETS,
+    CNT_BADPACKETS,
+    CNT_ONEBYTEPACKETS,
+    CNT_OVERFLOW,
+    CNT_MAXFILL
+  };
+
+  switch (cmd[1]) {
+    case CNT_TOTALBYTES:
+      return ECMD_AGAIN(snprintf_P(output, len, PSTR("Bytes total:%lu"), stats->total_bytes));
+    case CNT_GOODBYTES:
+      return ECMD_AGAIN(snprintf_P(output, len, PSTR("Bytes good:%lu"), stats->good_bytes));
+    case CNT_DROPPEDBYTES:
+      return ECMD_AGAIN(snprintf_P(output, len, PSTR("Bytes dropped:%lu"), stats->dropped_bytes));
+    case CNT_GOODPACKETS:
+      return ECMD_AGAIN(snprintf_P(output, len, PSTR("Packets good:%lu"), stats->good_packets));
+    case CNT_BADPACKETS:
+      return ECMD_AGAIN(snprintf_P(output, len, PSTR("Packets bad:%lu"), stats->bad_packets));
+    case CNT_ONEBYTEPACKETS:
+      return ECMD_AGAIN(snprintf_P(output, len, PSTR("Packets 1byte:%lu %lu"),
+        stats->onebyte_packets, stats->onebyte_own_packets));
+    case CNT_OVERFLOW:
+      return ECMD_AGAIN(snprintf_P(output, len, PSTR("Overflow:%lu"), stats->buffer_overflow));
+    case CNT_MAXFILL:
+      return ECMD_FINAL(snprintf_P(output, len, PSTR("Max fill:%u"), stats->max_fill));
+  }
+
+  return ECMD_FINAL_OK;	/* never reached */
 }
+#endif
 
 /*
   -- Ethersex META --
   block([[EMS]] commands)
   ecmd_ifdef(DEBUG_EMS)
-    ecmd_feature(ems_stats, "EMS stats",, Report statistic counters)
+    ecmd_feature(ems_stats, "ems stats", , Report statistic counters)
   ecmd_endif()
 */

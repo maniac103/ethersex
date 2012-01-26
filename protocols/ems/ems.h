@@ -41,6 +41,7 @@ struct ems_stats {
   uint32_t good_bytes;
   uint32_t dropped_bytes;
   uint32_t onebyte_packets;
+  uint32_t onebyte_own_packets;
   uint32_t good_packets;
   uint32_t bad_packets;
   uint32_t dropped_packets;
