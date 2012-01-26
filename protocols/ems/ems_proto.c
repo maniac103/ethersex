@@ -91,6 +91,8 @@ process_prepare_buffer(void)
   /* start-of-frame */
   ems_recv_buffer.data[ems_recv_buffer.len++] = 0xaa;
   ems_recv_buffer.data[ems_recv_buffer.len++] = 0x55;
+  /* frame type - XXX: remove me */
+  ems_recv_buffer.data[ems_recv_buffer.len++] = 0;
 
   /* len */
   ems_recv_buffer.data[ems_recv_buffer.len++] = prepare_fill;
