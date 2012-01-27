@@ -22,8 +22,6 @@
 
 /* test data to send: "0B 88 02 00 06 9A" */
 
-#undef REAL_TX
-
 #define STATE_RX       0
 #define STATE_TX_ADDR  1
 #define STATE_TX_DATA  2
@@ -37,17 +35,17 @@ static volatile uint8_t bit_counter = 0;
 
 static inline uint8_t is_polled(void)
 {
-  return (ems_poll_address == (OUR_EMS_ADDRESS | 0x80));
+  uint8_t polled = (ems_poll_address == (OUR_EMS_ADDRESS | 0x80));
+  ems_poll_address = 0;
+  return polled;
 }
 
 static uint8_t get_next_tx_byte(uint8_t *byte)
 {
-#ifdef REAL_TX
   if (ems_send_buffer.sent < ems_send_buffer.len) {
     *byte = ems_send_buffer.data[ems_send_buffer.sent++];
     return 1;
   }
-#endif
   return 0;
 }
 
@@ -68,8 +66,12 @@ ems_uart_init(void)
 static void
 go_to_rx(void)
 {
-  usart(UCSR,B) |= _BV(usart(RXCIE));
   ems_set_led(LED_BLUE, 1, 10);
+  /* drain input buffer */
+  while (usart(UCSR,A) & _BV(usart(RXC))) {
+    uint8_t data = usart(UDR);
+  }
+  usart(UCSR,B) |= _BV(usart(RXCIE));
   state = STATE_RX;
 }
 
@@ -83,7 +85,7 @@ ISR(TC2_VECTOR_COMPARE)
   }
 }
 
-ISR(usart(USART,_TX_vect))
+ISR(usart(USART,_UDRE_vect))
 {
   switch (state) {
     case STATE_TX_ADDR:
@@ -97,7 +99,7 @@ ISR(usart(USART,_TX_vect))
           usart(UDR) = byte;
         } else {
           PIN_CLEAR(EMS_UART_TX);
-          usart(UCSR,B) &= ~(_BV(usart(TXCIE)) | _BV(usart(RXCIE)) | _BV(usart(TXEN)));
+          usart(UCSR,B) &= ~(_BV(usart(UDRIE)) | _BV(usart(TXEN)));
           bit_counter = 11;
           TC2_COUNTER_COMPARE = BIT_TIME;
           TC2_COUNTER_CURRENT = 0;
@@ -109,7 +111,7 @@ ISR(usart(USART,_TX_vect))
     case STATE_TX_BREAK:
     default:
       /* Disable this interrupt */
-      usart(UCSR,B) &= ~(_BV(usart(TXCIE)));
+      usart(UCSR,B) &= ~(_BV(usart(UDRIE)));
       go_to_rx();
       break;
   }
@@ -133,7 +135,7 @@ ISR(usart(USART,_RX_vect))
     UPDATE_STATS(onebyte_own_packets, 1);
     ems_set_led(LED_BLUE, 1, 0);
     usart(UCSR,B) &= ~_BV(usart(RXCIE));
-    usart(UCSR,B) |= _BV(usart(TXCIE));
+    usart(UCSR,B) |= _BV(usart(UDRIE));
     state = STATE_TX_ADDR;
   }
 }

@@ -92,6 +92,7 @@ ems_process_txdata(uint8_t *data, uint16_t len)
     /* Copy the data to the send buffer */
     memcpy(ems_send_buffer.data, data, len);
     ems_send_buffer.len = len;
+    ems_send_buffer.sent = 0;
     /* The actual packet can be pushed into the buffer */
   } else if ((diff + len) < EMS_BUFFER_LEN) {
     memmove(ems_send_buffer.data, ems_send_buffer.data + ems_send_buffer.sent, diff);
