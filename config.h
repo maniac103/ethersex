@@ -31,8 +31,8 @@
 #include "autoconf.h"
 
 /* network controller hardware bug defines */
-#define ENC28J60_REV4_WORKAROUND
-#define ENC28J60_REV5_WORKAROUND
+#undef ENC28J60_REV4_WORKAROUND
+#undef ENC28J60_REV5_WORKAROUND
 #define ENC28J60_REV6_WORKAROUND  /* rev is 6; but microchip calls it B7 */
 
 /* global version defines */
