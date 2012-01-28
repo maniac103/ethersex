@@ -3,7 +3,6 @@
 #include "ems.h"
 
 #define BAUD 9600
-#define OUR_EMS_ADDRESS 0xb
 
 /*
  * theory:
@@ -20,7 +19,7 @@
  * if mismatch -> abort with <break>
  */
 
-/* test data to send: "0B 88 02 00 06 9A" */
+/* test data to send: "88 02 00 06" */
 
 #define STATE_RX       0
 #define STATE_TX_ADDR  1

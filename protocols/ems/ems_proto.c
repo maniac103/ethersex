@@ -37,8 +37,8 @@ static struct ems_uart_input_buffer buffer_shadow;
 static uint8_t prepare_buffer[64];
 static uint8_t prepare_fill = 0;
 
-static uint8_t
-calc_checksum(const uint8_t *buffer, uint8_t size)
+uint8_t
+ems_calc_checksum(const uint8_t *buffer, uint8_t size)
 {
   uint8_t crc = 0, d;
 
@@ -70,7 +70,7 @@ process_prepare_buffer(void)
   /* strip CRC */
   prepare_fill--;
 
-  uint8_t crc = calc_checksum(prepare_buffer, prepare_fill);
+  uint8_t crc = ems_calc_checksum(prepare_buffer, prepare_fill);
   if (crc != prepare_buffer[prepare_fill]) {
     UPDATE_STATS(bad_packets, 1);
     ems_set_led(LED_RED, 1, 2);

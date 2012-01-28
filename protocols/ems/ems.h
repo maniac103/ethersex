@@ -25,6 +25,8 @@
 #ifndef _EMS_H
 #define _EMS_H
 
+#define OUR_EMS_ADDRESS 0xb
+
 struct ems_uart_input_char {
   uint8_t data;
   uint8_t control;
@@ -52,6 +54,7 @@ struct ems_stats {
 struct ems_buffer {
   uint16_t len;
   uint16_t sent;
+  uint8_t addr_byte; /* space for address byte when calculating TX checksum */
   uint8_t data[EMS_BUFFER_LEN];
 };
 
@@ -59,6 +62,7 @@ void ems_init(void);
 void ems_process(void);
 void ems_periodic_timeout(void);
 uint8_t ems_process_txdata(uint8_t *data, uint16_t len);
+uint8_t ems_calc_checksum(const uint8_t *buffer, uint8_t size);
 
 void ems_uart_init(void);
 

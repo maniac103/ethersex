@@ -23,6 +23,7 @@
  */
 
 #include <avr/interrupt.h>
+#include <util/atomic.h>
 #include <string.h>
 #include "config.h"
 #include "ems.h"
@@ -88,16 +89,15 @@ uint8_t
 ems_process_txdata(uint8_t *data, uint16_t len)
 {
   uint16_t diff = ems_send_buffer.len - ems_send_buffer.sent;
-  if (diff == 0) {
+  if (diff == 0 && len <= (EMS_BUFFER_LEN - 2)) {
     /* Copy the data to the send buffer */
+    ems_send_buffer.addr_byte = OUR_EMS_ADDRESS;
     memcpy(ems_send_buffer.data, data, len);
-    ems_send_buffer.len = len;
-    ems_send_buffer.sent = 0;
-    /* The actual packet can be pushed into the buffer */
-  } else if ((diff + len) < EMS_BUFFER_LEN) {
-    memmove(ems_send_buffer.data, ems_send_buffer.data + ems_send_buffer.sent, diff);
-    memcpy(ems_send_buffer.data + diff, data, len);
-    ems_send_buffer.len = diff + len;
+    ems_send_buffer.data[len] = ems_calc_checksum(&ems_send_buffer.addr_byte, len + 1);
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+      ems_send_buffer.len = len + 1 /* data + checksum */;
+      ems_send_buffer.sent = 0;
+    }
   } else {
     return 0;
   }
