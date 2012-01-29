@@ -131,8 +131,11 @@ ems_process(void)
         process_prepare_buffer();
       }
       prepare_fill = 0;
-    } else {
+    } else if (prepare_fill < sizeof(prepare_buffer)) {
       prepare_buffer[prepare_fill++] = buffer_shadow.data[i].data;
+    } else {
+      UPDATE_STATS(buffer_overflow, 1);
+      prepare_fill = 0;
     }
   }
 }
