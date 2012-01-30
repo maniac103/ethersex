@@ -29,8 +29,9 @@
 #define PRESCALE 8
 #define BIT_TIME  ((uint8_t)((F_CPU / BAUD) / PRESCALE))
 
-static uint8_t state = STATE_RX;
+static volatile uint8_t state = STATE_RX;
 static volatile uint8_t bit_counter = 0;
+static volatile uint8_t has_data = 0;
 
 static inline uint8_t is_polled(void)
 {
@@ -78,9 +79,16 @@ ISR(TC2_VECTOR_COMPARE)
 {
   bit_counter--;
   if (bit_counter == 0) {
-    usart(UCSR,B) |= _BV(usart(TXEN));
     TC2_INT_COMPARE_OFF;
-    go_to_rx();
+    usart(UCSR,B) |= _BV(usart(TXEN));
+
+    if (has_data) {
+      /* it's required that we terminate with an empty message after sending data */
+      usart(UCSR,B) |= _BV(usart(UDRIE));
+      state = STATE_TX_ADDR;
+    } else {
+      go_to_rx();
+    }
   }
 }
 
@@ -89,12 +97,14 @@ ISR(usart(USART,_UDRE_vect))
   switch (state) {
     case STATE_TX_ADDR:
       usart(UDR) = OUR_EMS_ADDRESS;
+      has_data = 0;
       state = STATE_TX_DATA;
       break;
     case STATE_TX_DATA:
       {
         uint8_t byte;
         if (get_next_tx_byte(&byte)) {
+          has_data = 1;
           usart(UDR) = byte;
         } else {
           PIN_CLEAR(EMS_UART_TX);
