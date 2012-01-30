@@ -38,7 +38,6 @@
 
 static volatile uint8_t state = STATE_RX;
 static volatile uint8_t bit_counter = 0;
-static volatile uint8_t sent_data = 0;
 static volatile uint8_t tx_timeout = 0;
 
 /* We generate our own usart init module, for our usart port */
@@ -123,7 +122,6 @@ ISR(usart(USART,_UDRE_vect))
   switch (state) {
     case STATE_TX_ADDR:
       usart(UDR) = OUR_EMS_ADDRESS;
-      sent_data = 0;
       state = STATE_TX_ADDR_WAIT_ECHO;
       tx_timeout = TX_TIMEOUT;
       switch_mode(0);
@@ -132,7 +130,6 @@ ISR(usart(USART,_UDRE_vect))
       {
         uint8_t byte;
         if (get_next_tx_byte(&byte)) {
-          sent_data = 1;
           usart(UDR) = byte;
           state = STATE_TX_DATA_WAIT_ECHO;
           tx_timeout = TX_TIMEOUT;
@@ -169,13 +166,7 @@ ISR(usart(USART,_RX_vect))
       switch_mode(1);
       break;
     case STATE_TX_BREAK_WAIT_ECHO:
-      if (sent_data) {
-        /* it's required that we terminate with an empty message after sending data */
-        state = STATE_TX_ADDR;
-        switch_mode(1);
-      } else {
-        go_to_rx();
-      }
+      go_to_rx();
       tx_timeout = 0;
       break;
     default:
