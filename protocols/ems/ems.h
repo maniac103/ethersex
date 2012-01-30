@@ -34,8 +34,9 @@ struct ems_uart_input_char {
 
 #define EMS_UART_INPUT_BUFSIZE 16
 struct ems_uart_input_buffer {
-  struct ems_uart_input_char data[EMS_UART_INPUT_BUFSIZE];
+  uint8_t data[EMS_UART_INPUT_BUFSIZE];
   uint8_t count;
+  uint8_t eop[EMS_UART_INPUT_BUFSIZE / 8];
 };
 
 struct ems_stats {

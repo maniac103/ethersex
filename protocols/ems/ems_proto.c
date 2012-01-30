@@ -115,9 +115,10 @@ ems_process(void)
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     buffer_shadow.count = ems_input_buffer.count;
     if (ems_input_buffer.count > 0) {
-      memcpy(buffer_shadow.data, ems_input_buffer.data,
-             ems_input_buffer.count * sizeof(struct ems_uart_input_char));
+      memcpy(buffer_shadow.data, ems_input_buffer.data, ems_input_buffer.count);
+      memcpy(buffer_shadow.eop, ems_input_buffer.eop, sizeof(buffer_shadow.eop));
       ems_input_buffer.count = 0;
+      memset(ems_input_buffer.eop, 0, sizeof(ems_input_buffer.eop));
     }
   }
 
@@ -126,13 +127,16 @@ ems_process(void)
   }
 
   for (uint8_t i = 0; i < buffer_shadow.count; i++) {
-    if (buffer_shadow.data[i].control) {
+    uint8_t byte = i >> 3;
+    uint8_t bit = i & 0x7;
+
+    if (buffer_shadow.eop[byte] & (1 << bit)) {
       if (prepare_fill > 0) {
         process_prepare_buffer();
       }
       prepare_fill = 0;
     } else if (prepare_fill < sizeof(prepare_buffer)) {
-      prepare_buffer[prepare_fill++] = buffer_shadow.data[i].data;
+      prepare_buffer[prepare_fill++] = buffer_shadow.data[i];
     } else {
       UPDATE_STATS(buffer_overflow, 1);
       prepare_fill = 0;
