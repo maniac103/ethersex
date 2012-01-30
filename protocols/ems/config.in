@@ -1,5 +1,4 @@
 dep_bool_menu "EMS Support" EMS_SUPPORT $TCP_SUPPORT $ARCH_AVR
-	dep_bool 'Use software UART' EMS_SOFT_UART $EMS_SUPPORT
 	if [ "$EMS_BUFFER_LEN" = "" ] ; then
 		EMS_BUFFER_LEN=255
 	fi
