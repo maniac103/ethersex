@@ -85,7 +85,7 @@ switch_mode(uint8_t tx)
 static void
 go_to_rx(void)
 {
-  ems_set_led(LED_BLUE, 1, 10);
+  ems_set_led(LED_BLUE, 1, 1);
   /* drain input buffer */
   while (usart(UCSR,A) & _BV(usart(RXC))) {
     uint8_t data = usart(UDR);
