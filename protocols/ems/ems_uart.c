@@ -31,6 +31,7 @@
 
 #define PRESCALE 8
 #define BIT_TIME  ((uint8_t)((F_CPU / BAUD) / PRESCALE))
+#define TX_TIMEOUT 10 /* x100ms = 1 second */
 
 #define USE_USART 1
 #include "core/usart.h"
@@ -38,6 +39,7 @@
 static volatile uint8_t state = STATE_RX;
 static volatile uint8_t bit_counter = 0;
 static volatile uint8_t sent_data = 0;
+static volatile uint8_t tx_timeout = 0;
 
 /* We generate our own usart init module, for our usart port */
 generate_usart_init()
@@ -92,6 +94,19 @@ go_to_rx(void)
   state = STATE_RX;
 }
 
+void
+ems_uart_periodic(void)
+{
+  if (tx_timeout == 0) {
+    return;
+  }
+
+  tx_timeout--;
+  if (tx_timeout == 0) {
+    go_to_rx();
+  }
+}
+
 ISR(TC2_VECTOR_COMPARE)
 {
   bit_counter--;
@@ -110,6 +125,7 @@ ISR(usart(USART,_UDRE_vect))
       usart(UDR) = OUR_EMS_ADDRESS;
       sent_data = 0;
       state = STATE_TX_ADDR_WAIT_ECHO;
+      tx_timeout = TX_TIMEOUT;
       switch_mode(0);
       break;
     case STATE_TX_DATA:
@@ -119,6 +135,7 @@ ISR(usart(USART,_UDRE_vect))
           sent_data = 1;
           usart(UDR) = byte;
           state = STATE_TX_DATA_WAIT_ECHO;
+          tx_timeout = TX_TIMEOUT;
         } else {
           PIN_CLEAR(EMS_UART_TX);
           usart(UCSR,B) &= ~(_BV(usart(UDRIE)) | _BV(usart(TXEN)));
@@ -147,6 +164,7 @@ ISR(usart(USART,_RX_vect))
     case STATE_TX_ADDR_WAIT_ECHO:
     case STATE_TX_DATA_WAIT_ECHO:
       state = STATE_TX_DATA;
+      tx_timeout = 0;
       switch_mode(1);
       break;
     case STATE_TX_BREAK_WAIT_ECHO:
@@ -157,6 +175,7 @@ ISR(usart(USART,_RX_vect))
       } else {
         go_to_rx();
       }
+      tx_timeout = 0;
       break;
     default:
       while ((status = usart(UCSR,A)) & _BV(usart(RXC))) {
@@ -179,3 +198,7 @@ ISR(usart(USART,_RX_vect))
   }
 }
 
+/*
+  -- Ethersex META --
+  timer(5, ems_uart_periodic())
+*/
