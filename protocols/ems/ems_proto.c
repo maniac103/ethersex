@@ -88,25 +88,27 @@ process_prepare_buffer(void)
   UPDATE_STATS(good_packets, 1);
   ems_set_led(LED_GREEN, 1, 1);
 
-  /* start-of-frame */
-  ems_recv_buffer.data[ems_recv_buffer.len++] = 0xaa;
-  ems_recv_buffer.data[ems_recv_buffer.len++] = 0x55;
-  /* frame type - XXX: remove me */
-  ems_recv_buffer.data[ems_recv_buffer.len++] = 0;
+  if (ems_net_connected()) {
+    /* start-of-frame */
+    ems_recv_buffer.data[ems_recv_buffer.len++] = 0xaa;
+    ems_recv_buffer.data[ems_recv_buffer.len++] = 0x55;
+    /* frame type - XXX: remove me */
+    ems_recv_buffer.data[ems_recv_buffer.len++] = 0;
 
-  /* len */
-  ems_recv_buffer.data[ems_recv_buffer.len++] = prepare_fill;
+    /* len */
+    ems_recv_buffer.data[ems_recv_buffer.len++] = prepare_fill;
 
-  /* data */
-  uint8_t csum = 0;
-  for (uint8_t i = 0; i < prepare_fill; i++) {
-    uint8_t byte = prepare_buffer[i];
-    ems_recv_buffer.data[ems_recv_buffer.len++] = byte;
-    csum ^= byte;
+    /* data */
+    uint8_t csum = 0;
+    for (uint8_t i = 0; i < prepare_fill; i++) {
+      uint8_t byte = prepare_buffer[i];
+      ems_recv_buffer.data[ems_recv_buffer.len++] = byte;
+      csum ^= byte;
+    }
+
+    /* checksum */
+    ems_recv_buffer.data[ems_recv_buffer.len++] = csum;
   }
-
-  /* checksum */
-  ems_recv_buffer.data[ems_recv_buffer.len++] = csum;
 }
 
 void

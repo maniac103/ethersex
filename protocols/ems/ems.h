@@ -64,6 +64,7 @@ void ems_process(void);
 void ems_periodic_timeout(void);
 uint8_t ems_process_txdata(uint8_t *data, uint16_t len);
 uint8_t ems_calc_checksum(const uint8_t *buffer, uint8_t size);
+uint8_t ems_net_connected(void);
 
 void ems_uart_init(void);
 void ems_uart_periodic(void);

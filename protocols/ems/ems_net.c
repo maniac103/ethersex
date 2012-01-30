@@ -36,6 +36,11 @@ void ems_net_init(void)
   uip_listen(HTONS(EMS_PORT), ems_net_main);
 }
 
+uint8_t ems_net_connected(void)
+{
+  return ems_conn != NULL;
+}
+
 void ems_net_main(void)
 {
   if (uip_connected()) {
@@ -60,9 +65,12 @@ void ems_net_main(void)
       }
     }
   } else if (uip_closed() || uip_aborted() || uip_timedout()) {
-    /* if the closed connection was our connection, clean yport_conn */
+    /* if the closed connection was our connection, clean ems_conn */
     if (ems_conn == uip_conn) {
       ems_conn = NULL;
+      ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        ems_recv_buffer.len = 0;
+      }
     }
   } else if (uip_newdata()) {
     if (uip_len <= EMS_BUFFER_LEN && ems_process_txdata(uip_appdata, uip_len) != 0) {
