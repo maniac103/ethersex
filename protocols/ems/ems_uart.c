@@ -68,7 +68,7 @@ static uint8_t get_next_tx_byte(uint8_t *byte)
   return 0;
 }
 
-static inline void
+static void
 switch_mode(uint8_t tx)
 {
   uint8_t reg = usart(UCSR, B);
@@ -136,6 +136,7 @@ ISR(usart(USART,_UDRE_vect))
           usart(UDR) = byte;
           state = STATE_TX_DATA_WAIT_ECHO;
           tx_timeout = TX_TIMEOUT;
+          switch_mode(0);
         } else {
           PIN_CLEAR(EMS_UART_TX);
           usart(UCSR,B) &= ~(_BV(usart(UDRIE)) | _BV(usart(TXEN)));
