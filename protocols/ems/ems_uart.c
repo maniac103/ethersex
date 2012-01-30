@@ -27,7 +27,6 @@
 #define STATE_TX_DATA            3
 #define STATE_TX_DATA_WAIT_ECHO  4
 #define STATE_TX_BREAK           5
-#define STATE_TX_BREAK_WAIT_ECHO 6
 
 #define PRESCALE 8
 #define BIT_TIME  ((uint8_t)((F_CPU / BAUD) / PRESCALE))
@@ -112,8 +111,8 @@ ISR(TC2_VECTOR_COMPARE)
   if (bit_counter == 0) {
     TC2_INT_COMPARE_OFF;
     usart(UCSR,B) |= _BV(usart(TXEN));
-    state = STATE_TX_BREAK_WAIT_ECHO;
-    switch_mode(0);
+    tx_timeout = 0;
+    go_to_rx();
   }
 }
 
@@ -164,10 +163,6 @@ ISR(usart(USART,_RX_vect))
       state = STATE_TX_DATA;
       tx_timeout = 0;
       switch_mode(1);
-      break;
-    case STATE_TX_BREAK_WAIT_ECHO:
-      go_to_rx();
-      tx_timeout = 0;
       break;
     default:
       while ((status = usart(UCSR,A)) & _BV(usart(RXC))) {
