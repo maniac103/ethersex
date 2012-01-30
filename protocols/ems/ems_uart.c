@@ -21,17 +21,20 @@
 
 /* test data to send: "88 02 00 06" */
 
-#define STATE_RX       0
-#define STATE_TX_ADDR  1
-#define STATE_TX_DATA  2
-#define STATE_TX_BREAK 3
+#define STATE_RX                 0
+#define STATE_TX_ADDR            1
+#define STATE_TX_ADDR_WAIT_ECHO  2
+#define STATE_TX_DATA            3
+#define STATE_TX_DATA_WAIT_ECHO  4
+#define STATE_TX_BREAK           5
+#define STATE_TX_BREAK_WAIT_ECHO 6
 
 #define PRESCALE 8
 #define BIT_TIME  ((uint8_t)((F_CPU / BAUD) / PRESCALE))
 
 static volatile uint8_t state = STATE_RX;
 static volatile uint8_t bit_counter = 0;
-static volatile uint8_t has_data = 0;
+static volatile uint8_t sent_data = 0;
 
 static inline uint8_t is_polled(void)
 {
@@ -63,6 +66,20 @@ ems_uart_init(void)
   TC2_MODE_CTC;
 }
 
+static inline void
+switch_mode(uint8_t tx)
+{
+  uint8_t reg = usart(UCSR, B);
+  if (tx) {
+    reg &= ~(_BV(usart(RXEN)) | _BV(usart(RXCIE)));
+    reg |= _BV(usart(UDRIE));
+  } else {
+    reg &= ~(_BV(usart(UDRIE)));
+    reg |= _BV(usart(RXEN)) | _BV(usart(RXCIE));
+  }
+  usart(UCSR, B) = reg;
+}
+
 static void
 go_to_rx(void)
 {
@@ -71,7 +88,7 @@ go_to_rx(void)
   while (usart(UCSR,A) & _BV(usart(RXC))) {
     uint8_t data = usart(UDR);
   }
-  usart(UCSR,B) |= _BV(usart(RXCIE));
+  switch_mode(0);
   state = STATE_RX;
 }
 
@@ -81,14 +98,8 @@ ISR(TC2_VECTOR_COMPARE)
   if (bit_counter == 0) {
     TC2_INT_COMPARE_OFF;
     usart(UCSR,B) |= _BV(usart(TXEN));
-
-    if (has_data) {
-      /* it's required that we terminate with an empty message after sending data */
-      usart(UCSR,B) |= _BV(usart(UDRIE));
-      state = STATE_TX_ADDR;
-    } else {
-      go_to_rx();
-    }
+    state = STATE_TX_BREAK_WAIT_ECHO;
+    switch_mode(0);
   }
 }
 
@@ -97,15 +108,17 @@ ISR(usart(USART,_UDRE_vect))
   switch (state) {
     case STATE_TX_ADDR:
       usart(UDR) = OUR_EMS_ADDRESS;
-      has_data = 0;
-      state = STATE_TX_DATA;
+      sent_data = 0;
+      state = STATE_TX_ADDR_WAIT_ECHO;
+      switch_mode(0);
       break;
     case STATE_TX_DATA:
       {
         uint8_t byte;
         if (get_next_tx_byte(&byte)) {
-          has_data = 1;
+          sent_data = 1;
           usart(UDR) = byte;
+          state = STATE_TX_DATA_WAIT_ECHO;
         } else {
           PIN_CLEAR(EMS_UART_TX);
           usart(UCSR,B) &= ~(_BV(usart(UDRIE)) | _BV(usart(TXEN)));
@@ -130,22 +143,39 @@ ISR(usart(USART,_RX_vect))
 {
   uint8_t status;
 
-  while ((status = usart(UCSR,A)) & _BV(usart(RXC))) {
-    uint8_t data = usart(UDR);
-    uint8_t real_status = 0;
+  switch (state) {
+    case STATE_TX_ADDR_WAIT_ECHO:
+    case STATE_TX_DATA_WAIT_ECHO:
+      state = STATE_TX_DATA;
+      switch_mode(1);
+      break;
+    case STATE_TX_BREAK_WAIT_ECHO:
+      if (sent_data) {
+        /* it's required that we terminate with an empty message after sending data */
+        state = STATE_TX_ADDR;
+        switch_mode(1);
+      } else {
+        go_to_rx();
+      }
+      break;
+    default:
+      while ((status = usart(UCSR,A)) & _BV(usart(RXC))) {
+        uint8_t data = usart(UDR);
+        uint8_t real_status = 0;
 
-    if (status & _BV(usart(FE))) real_status |= FRAMEEND;
-    if (status & (_BV(usart(DOR)) | _BV(usart(UPE)))) real_status |= ERROR;
+        if (status & _BV(usart(FE))) real_status |= FRAMEEND;
+        if (status & (_BV(usart(DOR)) | _BV(usart(UPE)))) real_status |= ERROR;
 
-    ems_uart_process_input_byte(data, real_status);
-  }
+        ems_uart_process_input_byte(data, real_status);
+      }
 
-  if (is_polled()) {
-    UPDATE_STATS(onebyte_own_packets, 1);
-    ems_set_led(LED_BLUE, 1, 0);
-    usart(UCSR,B) &= ~_BV(usart(RXCIE));
-    usart(UCSR,B) |= _BV(usart(UDRIE));
-    state = STATE_TX_ADDR;
+      if (is_polled()) {
+        UPDATE_STATS(onebyte_own_packets, 1);
+        ems_set_led(LED_BLUE, 1, 0);
+        state = STATE_TX_ADDR;
+        switch_mode(1);
+      }
+      break;
   }
 }
 
