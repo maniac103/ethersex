@@ -120,7 +120,7 @@ ISR(usart(USART,_RX_vect))
 {
   uint8_t status;
 
-  while ((status = (usart(UCSR,A) & _BV(usart(RXC))))) {
+  while ((status = usart(UCSR,A)) & _BV(usart(RXC))) {
     uint8_t data = usart(UDR);
     uint8_t real_status = 0;
 
