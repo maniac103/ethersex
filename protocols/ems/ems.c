@@ -89,7 +89,7 @@ uint8_t
 ems_process_txdata(uint8_t *data, uint16_t len)
 {
   uint16_t diff = ems_send_buffer.len - ems_send_buffer.sent;
-  if (diff == 0 && len <= (EMS_BUFFER_LEN - 2)) {
+  if (diff == 0 && len <= (EMS_BUFFER_LEN - 1)) {
     /* Copy the data to the send buffer */
     ems_send_buffer.addr_byte = OUR_EMS_ADDRESS;
     memcpy(ems_send_buffer.data, data, len);
