@@ -8,7 +8,7 @@ dep_bool_menu "EMS Support" EMS_SUPPORT $TCP_SUPPORT $ARCH_AVR
 	if [ "$CONFIG_EXPERT" = "y" ] ; then
 		int    "EMS Buffer Length" EMS_BUFFER_LEN ""
 	else
-		define_int EMS_BUFFER_LEN 32
+		define_int EMS_BUFFER_LEN 64
 	fi
 	int    "EMS TCP Port" EMS_PORT 7950
 	comment  "Debugging Flags"
