@@ -142,14 +142,6 @@ define(`USB_USE_INT', `dnl
 #define USB_INTR_CFG_SET USB_INTR_CFG_HACK($1)
 ')
 
-define(`EMS_USE_INT', `dnl
-/* EMS interrupt line (Soft UART RX) */
-#define EMS_SOFTRX_INT_PIN INT$1
-#define EMS_SOFTRX_INT_VECTOR INT$1`_vect'
-#define EMS_SOFTRX_INT_ISC _ISC($1,0)
-#define EMS_SOFTRX_INT_ISCMASK (_ISC($1,0) | _ISC($1,1))
-')
-
 define(`DCF77_USE_PCINT', `dnl
 /* DCF77 PinChange-Interrupt Line  PCINT$1 -> $2 */
 pin(DCF1, $2, INPUT)

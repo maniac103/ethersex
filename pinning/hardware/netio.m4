@@ -85,10 +85,8 @@ ifdef(`conf_HD44780', `
 ')
 
 ifdef(`conf_EMS', `
-  pin(EMS_UART_RX, PD2)
   pin(EMS_UART_TX, PD3)
   pin(EMS_LED_BLUE, PD4)
   pin(EMS_LED_GREEN, PD6)
   pin(EMS_LED_RED, PB0)
-  EMS_USE_INT(0)
 ')
