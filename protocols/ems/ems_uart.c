@@ -46,6 +46,10 @@ void
 ems_uart_init(void)
 {
   usart_init();
+
+  PIN_CLEAR(EMS_UART_TX);
+  DDR_CONFIG_OUT(EMS_UART_TX);
+
   TC2_PRESCALER_8;
   TC2_MODE_CTC;
 }
@@ -116,6 +120,17 @@ ISR(TC2_VECTOR_COMPARE)
   }
 }
 
+ISR(usart(USART, _TX_vect))
+{
+  /* TX finished, now send break */
+  usart(UCSR,B) &= ~(_BV(usart(UDRIE)) | _BV(usart(TXEN)) | _BV(usart(TXCIE)));
+  bit_counter = 11;
+  TC2_COUNTER_COMPARE = BIT_TIME;
+  TC2_COUNTER_CURRENT = 0;
+  TC2_INT_COMPARE_ON;
+  state = STATE_TX_BREAK;
+}
+
 ISR(usart(USART,_UDRE_vect))
 {
   switch (state) {
@@ -134,13 +149,9 @@ ISR(usart(USART,_UDRE_vect))
           tx_timeout = TX_TIMEOUT;
           switch_mode(0);
         } else {
-          PIN_CLEAR(EMS_UART_TX);
-          usart(UCSR,B) &= ~(_BV(usart(UDRIE)) | _BV(usart(TXEN)));
-          bit_counter = 11;
-          TC2_COUNTER_COMPARE = BIT_TIME;
-          TC2_COUNTER_CURRENT = 0;
-          TC2_INT_COMPARE_ON;
-          state = STATE_TX_BREAK;
+          /* wait for TX to finish */
+          usart(UCSR,B) &= ~(_BV(usart(UDRIE)));
+          usart(UCSR,B) |= _BV(usart(TXCIE));
         }
       }
       break;
