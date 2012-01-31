@@ -32,7 +32,7 @@
 struct ems_uart_input_buffer ems_input_buffer;
 struct ems_buffer ems_send_buffer;
 struct ems_buffer ems_recv_buffer;
-#ifdef DEBUG_EMS
+#ifdef EMS_DEBUG_STATS
 struct ems_stats ems_stats_buffer;
 #endif
 uint8_t led_timeout[EMS_NUM_LEDS];
@@ -128,6 +128,7 @@ ems_uart_process_input_byte(uint8_t data, uint8_t status)
     ems_input_buffer.eop[byte] |= 1 << bit;
     ems_input_buffer.count++;
     ems_poll_address = (packet_bytes == 1) ? last_data : 0;
+    EMSDEBUG("Got packet with %d bytes\n", packet_bytes);
     packet_bytes = 0;
   } else if (status & ERROR) {
     /* error -> drop */
@@ -139,6 +140,7 @@ ems_uart_process_input_byte(uint8_t data, uint8_t status)
   }
 
   if (ems_input_buffer.count >= EMS_UART_INPUT_BUFSIZE) {
+    EMSDEBUG("Input buffer overflow\n");
     UPDATE_STATS(buffer_overflow, 1);
     ems_input_buffer.count = 0;
   }

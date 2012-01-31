@@ -28,7 +28,7 @@
 
 #include "protocols/ecmd/ecmd-base.h"
 
-#ifdef DEBUG_EMS
+#ifdef EMS_DEBUG_STATS
 int16_t parse_cmd_ems_stats(char *cmd, char *output, uint16_t len)
 {
   struct ems_stats *stats = &ems_stats_buffer;
@@ -79,7 +79,7 @@ int16_t parse_cmd_ems_stats(char *cmd, char *output, uint16_t len)
 /*
   -- Ethersex META --
   block([[EMS]] commands)
-  ecmd_ifdef(DEBUG_EMS)
+  ecmd_ifdef(EMS_DEBUG_STATS)
     ecmd_feature(ems_stats, "ems stats", , Report statistic counters)
   ecmd_endif()
 */

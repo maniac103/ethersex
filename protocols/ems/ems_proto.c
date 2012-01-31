@@ -71,6 +71,7 @@ process_prepare_buffer(void)
   prepare_fill--;
 
   uint8_t crc = ems_calc_checksum(prepare_buffer, prepare_fill);
+  EMSDEBUG("Packet CRC %02x calc %02x\n", prepare_buffer[prepare_fill], crc);
   if (crc != prepare_buffer[prepare_fill]) {
     UPDATE_STATS(bad_packets, 1);
     ems_set_led(LED_RED, 1, 2);
@@ -79,6 +80,8 @@ process_prepare_buffer(void)
 
   uint16_t needed = prepare_fill + 5; /* frame start + type + len + csum */
   if (ems_recv_buffer.len + needed >= EMS_BUFFER_LEN) {
+    EMSDEBUG("Output buffer too small (has %d need %d)\n",
+             EMS_BUFFER_LEN - ems_recv_buffer.len, needed);
     UPDATE_STATS(dropped_packets, 1);
     UPDATE_STATS(dropped_bytes, prepare_fill);
     return;
@@ -108,6 +111,9 @@ process_prepare_buffer(void)
 
     /* checksum */
     ems_recv_buffer.data[ems_recv_buffer.len++] = csum;
+    EMSDEBUG("Send %d byte packet to client\n", prepare_fill);
+  } else {
+    EMSDEBUG("No client connected, dropping %d bytes\n", prepare_fill);
   }
 }
 
@@ -134,6 +140,7 @@ ems_process(void)
 
     if (buffer_shadow.eop[byte] & (1 << bit)) {
       if (prepare_fill > 0) {
+        EMSDEBUG("Got %d bytes from input buf\n", prepare_fill);
         process_prepare_buffer();
       }
       prepare_fill = 0;

@@ -83,11 +83,19 @@ extern uint8_t ems_poll_address;
 extern struct ems_uart_input_buffer ems_input_buffer;
 extern struct ems_buffer ems_send_buffer;
 extern struct ems_buffer ems_recv_buffer;
-#ifdef DEBUG_EMS
+#ifdef EMS_DEBUG_STATS
 extern struct ems_stats ems_stats_buffer;
 #define UPDATE_STATS(value,count) (ems_stats_buffer. value += count)
 #else
 #define UPDATE_STATS(...)
+#endif
+
+#include "config.h"
+#ifdef EMS_DEBUG
+# include "core/debug.h"
+# define EMSDEBUG(a...)  debug_printf("ems: " a)
+#else
+# define EMSDEBUG(a...)
 #endif
 
 #endif /* _EMS_H */

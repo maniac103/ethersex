@@ -191,6 +191,11 @@ ISR(usart(USART,_RX_vect))
         ems_set_led(LED_BLUE, 1, 0);
         state = STATE_TX_ADDR;
         switch_mode(1);
+#ifdef EMS_DEBUG
+        if (ems_send_buffer.sent != ems_send_buffer.len) {
+          EMSDEBUG("Sending %d bytes\n", ems_send_buffer.len - ems_send_buffer.sent);
+        }
+#endif
       }
       break;
   }

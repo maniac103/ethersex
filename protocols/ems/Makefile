@@ -8,7 +8,7 @@ $(EMS_SUPPORT)_SRC +=            \
 	protocols/ems/ems_net.c  \
 	protocols/ems/ems_uart.c \
 	protocols/ems/ems_proto.c
-$(DEBUG_EMS)_ECMD_SRC += protocols/ems/ems_ecmd.c
+$(EMS_DEBUG_STATS)_ECMD_SRC += protocols/ems/ems_ecmd.c
 
 ##############################################################################
 # generic fluff
