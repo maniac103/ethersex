@@ -67,22 +67,30 @@ ems_periodic_timeout(void)
 
 void ems_set_led(uint8_t led, uint8_t enable, uint8_t timeout)
 {
-  if (enable) {
-    switch (led) {
-      case LED_BLUE: PIN_SET(EMS_LED_BLUE); break;
-      case LED_GREEN: PIN_SET(EMS_LED_GREEN); break;
-      case LED_RED: PIN_SET(EMS_LED_RED); break;
-      default: return;
-    }
-    led_timeout[led] = timeout;
-  } else {
-    switch (led) {
-      case LED_BLUE: PIN_CLEAR(EMS_LED_BLUE); break;
-      case LED_GREEN: PIN_CLEAR(EMS_LED_GREEN); break;
-      case LED_RED: PIN_CLEAR(EMS_LED_RED); break;
-      default: return;
-    }
+  switch (led) {
+#ifdef HAVE_EMS_LED_BLUE
+    case LED_BLUE:
+      if (enable) PIN_SET(EMS_LED_BLUE);
+      else PIN_CLEAR(EMS_LED_BLUE);
+      break;
+#endif
+#ifdef HAVE_EMS_LED_GREEN
+    case LED_GREEN:
+      if (enable) PIN_SET(EMS_LED_GREEN);
+      else PIN_CLEAR(EMS_LED_GREEN);
+      break;
+#endif
+#ifdef HAVE_EMS_LED_RED
+    case LED_RED:
+      if (enable) PIN_SET(EMS_LED_RED);
+      else PIN_CLEAR(EMS_LED_RED);
+      break;
+#endif
+    default:
+      return;
   }
+
+  led_timeout[led] = enable ? timeout : 0;
 }
 
 uint8_t
