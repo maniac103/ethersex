@@ -128,7 +128,7 @@ ems_uart_process_input_byte(uint8_t data, uint8_t status)
     ems_input_buffer.eop[byte] |= 1 << bit;
     ems_input_buffer.count++;
     ems_poll_address = (packet_bytes == 1) ? last_data : 0;
-    EMSDEBUG("Got packet with %d bytes\n", packet_bytes);
+    EMSIODEBUG("Got packet with %d bytes\n", packet_bytes);
     packet_bytes = 0;
   } else if (status & ERROR) {
     /* error -> drop */
@@ -140,7 +140,7 @@ ems_uart_process_input_byte(uint8_t data, uint8_t status)
   }
 
   if (ems_input_buffer.count >= EMS_UART_INPUT_BUFSIZE) {
-    EMSDEBUG("Input buffer overflow\n");
+    EMSERRORDEBUG("Input buffer overflow\n");
     UPDATE_STATS(buffer_overflow, 1);
     ems_input_buffer.count = 0;
   }

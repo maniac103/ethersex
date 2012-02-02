@@ -191,7 +191,7 @@ ISR(usart(USART,_RX_vect))
         data = usart(UDR);
         if (last_sent_byte != data) {
           /* mismatch -> abort */
-          EMSDEBUG("Last sent byte %02x, echo %02x -> MISMATCH\n", last_sent_byte, data);
+          EMSERRORDEBUG("Last sent byte %02x, echo %02x -> MISMATCH\n", last_sent_byte, data);
           ems_send_buffer.sent = tx_packet_start;
           start_break();
         } else {
@@ -219,7 +219,7 @@ ISR(usart(USART,_RX_vect))
         switch_mode(1);
 #ifdef EMS_DEBUG
         if (ems_send_buffer.sent != ems_send_buffer.len) {
-          EMSDEBUG("Sending %d bytes\n", ems_send_buffer.len - ems_send_buffer.sent);
+          EMSIODEBUG("Sending %d bytes\n", ems_send_buffer.len - ems_send_buffer.sent);
         }
 #endif
       }

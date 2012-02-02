@@ -86,11 +86,26 @@ extern struct ems_stats ems_stats_buffer;
 #endif
 
 #include "config.h"
-#ifdef EMS_DEBUG
+#if defined (EMS_PROTO_DEBUG) || defined(EMS_IO_DEBUG) || defined(EMS_ERROR_DEBUG)
 # include "core/debug.h"
-# define EMSDEBUG(a...)  debug_printf("ems: " a)
+#endif
+
+#ifdef EMS_PROTO_DEBUG
+# define EMSPROTODEBUG(a...)  debug_printf("ems: " a)
 #else
-# define EMSDEBUG(a...)
+# define EMSPROTODEBUG(a...)
+#endif
+
+#ifdef EMS_IO_DEBUG
+# define EMSIODEBUG(a...)  debug_printf("ems: " a)
+#else
+# define EMSIODEBUG(a...)
+#endif
+
+#ifdef EMS_ERROR_DEBUG
+# define EMSERRORDEBUG(a...)  debug_printf("ems: " a)
+#else
+# define EMSERRORDEBUG(a...)
 #endif
 
 #endif /* _EMS_H */
