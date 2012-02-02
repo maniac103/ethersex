@@ -27,11 +27,6 @@
 
 #define OUR_EMS_ADDRESS 0xb
 
-struct ems_uart_input_char {
-  uint8_t data;
-  uint8_t control;
-};
-
 #define EMS_UART_INPUT_BUFSIZE 16
 struct ems_uart_input_buffer {
   uint8_t data[EMS_UART_INPUT_BUFSIZE];
