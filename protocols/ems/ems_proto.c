@@ -20,13 +20,6 @@
  * http://www.gnu.org/copyleft/gpl.html
  */
 
-/*
- * UART loop -> receive buffer : data+control * 16 + counter
- * main loop -> memcpy filled buffer into shadow atomically
- *           -> scan shadow for frame start (check control bytes)
- *           -> prepare output buffer (insert markers + CRC, update stats)
- */
-
 #include <avr/interrupt.h>
 #include <util/atomic.h>
 #include <string.h>

@@ -5,8 +5,9 @@
 #define BAUD 9600
 
 /*
- * theory:
- * Polling: address | 0x80
+ * EMS theory:
+ *
+ * Polling: master sends (address | 0x80)
  * Answer:
  * 0) nothing to send: <addr> <break>
  * 1) Broadcast: <addr> 0x0 <data> ... <break>
