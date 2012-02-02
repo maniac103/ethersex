@@ -130,9 +130,11 @@ ems_process(void)
     }
   }
 
+#ifdef EMS_DEBUG_STATS
   if (buffer_shadow.count > ems_stats_buffer.max_fill) {
     ems_stats_buffer.max_fill = buffer_shadow.count;
   }
+#endif
 
   for (uint8_t i = 0; i < buffer_shadow.count; i++) {
     uint8_t byte = i >> 3;
