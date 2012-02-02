@@ -39,6 +39,8 @@
 static volatile uint8_t state = STATE_RX;
 static volatile uint8_t bit_counter = 0;
 static volatile uint8_t tx_timeout = 0;
+static volatile uint8_t tx_packet_start;
+static volatile uint8_t last_sent_byte;
 
 /* We generate our own usart init module, for our usart port */
 generate_usart_init()
@@ -92,6 +94,7 @@ go_to_rx(void)
   /* drain input buffer */
   while (usart(UCSR,A) & _BV(usart(RXC))) {
     uint8_t data = usart(UDR);
+    (void) data;
   }
   switch_mode(0);
   state = STATE_RX;
@@ -110,6 +113,17 @@ ems_uart_periodic(void)
   }
 }
 
+static void
+start_break(void)
+{
+  usart(UCSR,B) &= ~(_BV(usart(UDRIE)) | _BV(usart(TXEN)) | _BV(usart(TXCIE)));
+  bit_counter = 11;
+  TC2_COUNTER_COMPARE = BIT_TIME;
+  TC2_COUNTER_CURRENT = 0;
+  TC2_INT_COMPARE_ON;
+  state = STATE_TX_BREAK;
+}
+
 ISR(TC2_VECTOR_COMPARE)
 {
   bit_counter--;
@@ -124,27 +138,25 @@ ISR(TC2_VECTOR_COMPARE)
 ISR(usart(USART, _TX_vect))
 {
   /* TX finished, now send break */
-  usart(UCSR,B) &= ~(_BV(usart(UDRIE)) | _BV(usart(TXEN)) | _BV(usart(TXCIE)));
-  bit_counter = 11;
-  TC2_COUNTER_COMPARE = BIT_TIME;
-  TC2_COUNTER_CURRENT = 0;
-  TC2_INT_COMPARE_ON;
-  state = STATE_TX_BREAK;
+  start_break();
 }
 
 ISR(usart(USART,_UDRE_vect))
 {
   switch (state) {
     case STATE_TX_ADDR:
+      last_sent_byte = OUR_EMS_ADDRESS;
       usart(UDR) = OUR_EMS_ADDRESS;
       state = STATE_TX_ADDR_WAIT_ECHO;
       tx_timeout = TX_TIMEOUT;
+      tx_packet_start = ems_send_buffer.sent;
       switch_mode(0);
       break;
     case STATE_TX_DATA:
       {
         uint8_t byte;
         if (get_next_tx_byte(&byte)) {
+          last_sent_byte = byte;
           usart(UDR) = byte;
           state = STATE_TX_DATA_WAIT_ECHO;
           tx_timeout = TX_TIMEOUT;
@@ -167,19 +179,32 @@ ISR(usart(USART,_UDRE_vect))
 
 ISR(usart(USART,_RX_vect))
 {
-  uint8_t status;
+  uint8_t status, data;
 
   switch (state) {
     case STATE_TX_ADDR_WAIT_ECHO:
     case STATE_TX_DATA_WAIT_ECHO:
-      state = STATE_TX_DATA;
-      tx_timeout = 0;
-      switch_mode(1);
+      status = usart(UCSR, A);
+
+      if (status & _BV(usart(RXC))) {
+        tx_timeout = 0;
+        data = usart(UDR);
+        if (last_sent_byte != data) {
+          /* mismatch -> abort */
+          EMSDEBUG("Last sent byte %02x, echo %02x -> MISMATCH\n", last_sent_byte, data);
+          ems_send_buffer.sent = tx_packet_start;
+          start_break();
+        } else {
+          state = STATE_TX_DATA;
+        }
+        switch_mode(1);
+      }
       break;
     default:
       while ((status = usart(UCSR,A)) & _BV(usart(RXC))) {
-        uint8_t data = usart(UDR);
         uint8_t real_status = 0;
+
+        data = usart(UDR);
 
         if (status & _BV(usart(FE))) real_status |= FRAMEEND;
         if (status & (_BV(usart(DOR)) | _BV(usart(UPE)))) real_status |= ERROR;
