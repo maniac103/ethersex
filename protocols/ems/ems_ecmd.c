@@ -48,6 +48,7 @@ int16_t parse_cmd_ems_stats(char *cmd, char *output, uint16_t len)
     CNT_GOODPACKETS,
     CNT_BADPACKETS,
     CNT_ONEBYTEPACKETS,
+    CNT_ACKNACKPACKETS,
     CNT_OVERFLOW,
     CNT_MAXFILL
   };
@@ -66,6 +67,9 @@ int16_t parse_cmd_ems_stats(char *cmd, char *output, uint16_t len)
     case CNT_ONEBYTEPACKETS:
       return ECMD_AGAIN(snprintf_P(output, len, PSTR("Packets 1byte:%lu %lu"),
         stats->onebyte_packets, stats->onebyte_own_packets));
+    case CNT_ACKNACKPACKETS:
+      return ECMD_AGAIN(snprintf_P(output, len, PSTR("Packets ack:%lu nack:%lu"),
+        stats->onebyte_ack_packets, stats->onebyte_nack_packets));
     case CNT_OVERFLOW:
       return ECMD_AGAIN(snprintf_P(output, len, PSTR("Overflow:%lu"), stats->buffer_overflow));
     case CNT_MAXFILL:

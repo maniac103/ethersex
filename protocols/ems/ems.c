@@ -37,6 +37,8 @@ struct ems_stats ems_stats_buffer;
 #endif
 uint8_t led_timeout[EMS_NUM_LEDS];
 uint8_t ems_poll_address;
+static uint8_t last_destination = 0;
+static uint8_t dest_counter = 0;
 
 void
 ems_init(void)
@@ -119,17 +121,20 @@ ems_uart_process_input_byte(uint8_t data, uint8_t status)
   static uint8_t packet_bytes = 0;
   static uint8_t last_data;
   uint8_t index = ems_input_buffer.count;
-  uint8_t byte = index >> 3;
-  uint8_t bit = index & 0x7;
 
   if (status & FRAMEEND) {
     /* end-of-frame */
     ems_input_buffer.data[index] = 0;
-    ems_input_buffer.eop[byte] |= 1 << bit;
+    ems_input_buffer.eop[EOP_BYTE(index)] |= EOP_BIT(index);
     ems_input_buffer.count++;
     ems_poll_address = (packet_bytes == 1) ? last_data : 0;
+    if (packet_bytes > 1 && last_destination == OUR_EMS_ADDRESS) {
+      ems_uart_got_response();
+    }
     EMSIODEBUG("Got packet with %d bytes\n", packet_bytes);
     packet_bytes = 0;
+    dest_counter = 0;
+    last_destination = 0;
   } else if (status & ERROR) {
     /* error -> drop */
   } else {
@@ -137,12 +142,34 @@ ems_uart_process_input_byte(uint8_t data, uint8_t status)
     ems_input_buffer.count++;
     last_data = data;
     packet_bytes++;
+    dest_counter++;
+    if (dest_counter == 2) {
+      last_destination = data;
+    }
   }
 
   if (ems_input_buffer.count >= EMS_UART_INPUT_BUFSIZE) {
     EMSERRORDEBUG("Input buffer overflow\n");
     UPDATE_STATS(buffer_overflow, 1);
     ems_input_buffer.count = 0;
+  }
+}
+
+/*
+ * Mark EOP byte as coming from a certain source
+ */
+void
+ems_add_source_to_eop(uint8_t source)
+{
+  uint8_t index = ems_input_buffer.count - 1;
+
+  if (ems_input_buffer.count == 0) {
+    return;
+  }
+  if (ems_input_buffer.data[index] == 0) {
+    if (ems_input_buffer.eop[EOP_BYTE(index)] & EOP_BIT(index)) {
+      ems_input_buffer.data[index] = source;
+    }
   }
 }
 

@@ -52,26 +52,36 @@ ems_calc_checksum(const uint8_t *buffer, uint8_t size)
 
 
 static void
-process_prepare_buffer(void)
+process_prepare_buffer(uint8_t source_byte)
 {
   UPDATE_STATS(total_bytes, prepare_fill);
 
   if (prepare_fill == 1) {
-    UPDATE_STATS(onebyte_packets, 1);
-    return;
-  }
-  /* strip CRC */
-  prepare_fill--;
+    if (source_byte == 0) {
+      UPDATE_STATS(onebyte_packets, 1);
+      return;
+    } else {
+      /* this was ack or nack, construct fake packet */
+      prepare_buffer[3] = prepare_buffer[0];
+      prepare_buffer[0] = source_byte;
+      prepare_buffer[1] = OUR_EMS_ADDRESS;
+      prepare_buffer[2] = EMS_MSG_TYPE_RESP;
+      prepare_fill = 4;
+    }
+  } else {
+    /* strip CRC */
+    prepare_fill--;
 
-  uint8_t crc = ems_calc_checksum(prepare_buffer, prepare_fill);
-  EMSPROTODEBUG("Packet CRC %02x calc %02x\n", prepare_buffer[prepare_fill], crc);
-  if (crc != prepare_buffer[prepare_fill]) {
-    UPDATE_STATS(bad_packets, 1);
-    ems_set_led(LED_RED, 1, 2);
-    return;
+    uint8_t crc = ems_calc_checksum(prepare_buffer, prepare_fill);
+    EMSPROTODEBUG("Packet CRC %02x calc %02x\n", prepare_buffer[prepare_fill], crc);
+    if (crc != prepare_buffer[prepare_fill]) {
+      UPDATE_STATS(bad_packets, 1);
+      ems_set_led(LED_RED, 1, 2);
+      return;
+    }
   }
 
-  uint16_t needed = prepare_fill + 5; /* frame start + type + len + csum */
+  uint16_t needed = prepare_fill + 4; /* frame start + len + csum */
   if (ems_recv_buffer.len + needed >= EMS_BUFFER_LEN) {
     EMSERRORDEBUG("Output buffer too small (has %d need %d)\n",
                   EMS_BUFFER_LEN - ems_recv_buffer.len, needed);
@@ -128,13 +138,10 @@ ems_process(void)
 #endif
 
   for (uint8_t i = 0; i < buffer_shadow.count; i++) {
-    uint8_t byte = i >> 3;
-    uint8_t bit = i & 0x7;
-
-    if (buffer_shadow.eop[byte] & (1 << bit)) {
+    if (buffer_shadow.eop[EOP_BYTE(i)] & EOP_BIT(i)) {
       if (prepare_fill > 0) {
         EMSIODEBUG("Got %d bytes from input buf\n", prepare_fill);
-        process_prepare_buffer();
+        process_prepare_buffer(buffer_shadow.data[i]);
       }
       prepare_fill = 0;
     } else if (prepare_fill < sizeof(prepare_buffer)) {

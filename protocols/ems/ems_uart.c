@@ -41,6 +41,13 @@ static volatile uint8_t bit_counter = 0;
 static volatile uint8_t tx_timeout = 0;
 static volatile uint8_t tx_packet_start;
 static volatile uint8_t last_sent_byte;
+static volatile uint8_t last_send_dest;
+
+static volatile enum {
+    NOT_WAITING,
+    WAIT_FOR_ACK,
+    WAIT_FOR_RESPONSE
+} response_wait_mode = NOT_WAITING;
 
 /* We generate our own usart init module, for our usart port */
 generate_usart_init()
@@ -57,20 +64,36 @@ ems_uart_init(void)
   TC2_MODE_CTC;
 }
 
-static inline uint8_t is_polled(void)
+void
+ems_uart_got_response(void)
 {
-  uint8_t polled = (ems_poll_address == (OUR_EMS_ADDRESS | 0x80));
-  ems_poll_address = 0;
-  return polled;
+  if (response_wait_mode == WAIT_FOR_RESPONSE) {
+    /* pretend being polled to trigger sending terminating address */
+    ems_poll_address = OUR_EMS_ADDRESS | EMS_REQUEST_MASK;
+    response_wait_mode = NOT_WAITING;
+  }
 }
 
-static uint8_t get_next_tx_byte(uint8_t *byte)
+static inline uint8_t is_polled(void)
 {
-  if (ems_send_buffer.sent < ems_send_buffer.len) {
-    *byte = ems_send_buffer.data[ems_send_buffer.sent++];
-    return 1;
+  uint8_t polled = (ems_poll_address == (OUR_EMS_ADDRESS | EMS_REQUEST_MASK));
+  if (response_wait_mode == WAIT_FOR_ACK) {
+    if (ems_poll_address == EMS_RESPONSE_OK) {
+      UPDATE_STATS(onebyte_ack_packets, 1);
+    }
+    if (ems_poll_address == EMS_RESPONSE_FAIL) {
+      UPDATE_STATS(onebyte_nack_packets, 1);
+    }
+    if (ems_poll_address == EMS_RESPONSE_OK || ems_poll_address == EMS_RESPONSE_FAIL) {
+        ems_add_source_to_eop(last_send_dest);
+        polled = 1;
+    }
   }
-  return 0;
+  if (polled) {
+    response_wait_mode = NOT_WAITING;
+  }
+  ems_poll_address = 0;
+  return polled;
 }
 
 static void
@@ -153,19 +176,27 @@ ISR(usart(USART,_UDRE_vect))
       switch_mode(0);
       break;
     case STATE_TX_DATA:
-      {
-        uint8_t byte;
-        if (get_next_tx_byte(&byte)) {
-          last_sent_byte = byte;
-          usart(UDR) = byte;
-          state = STATE_TX_DATA_WAIT_ECHO;
-          tx_timeout = TX_TIMEOUT;
-          switch_mode(0);
-        } else {
-          /* wait for TX to finish */
-          usart(UCSR,B) &= ~(_BV(usart(UDRIE)));
-          usart(UCSR,B) |= _BV(usart(TXCIE));
+      if (ems_send_buffer.sent < ems_send_buffer.len) {
+        uint8_t byte = ems_send_buffer.data[ems_send_buffer.sent];
+        if (ems_send_buffer.sent == tx_packet_start) {
+          /* byte is the destination address */
+          if (byte & EMS_REQUEST_MASK) {
+            response_wait_mode = WAIT_FOR_RESPONSE;
+          } else {
+            response_wait_mode = WAIT_FOR_ACK;
+          }
+          last_send_dest = byte & ~EMS_REQUEST_MASK;
         }
+        ems_send_buffer.sent++;
+        last_sent_byte = byte;
+        usart(UDR) = byte;
+        state = STATE_TX_DATA_WAIT_ECHO;
+        tx_timeout = TX_TIMEOUT;
+        switch_mode(0);
+      } else {
+        /* wait for TX to finish */
+        usart(UCSR,B) &= ~(_BV(usart(UDRIE)));
+        usart(UCSR,B) |= _BV(usart(TXCIE));
       }
       break;
     case STATE_TX_BREAK:

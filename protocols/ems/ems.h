@@ -25,9 +25,15 @@
 #ifndef _EMS_H
 #define _EMS_H
 
-#define OUR_EMS_ADDRESS 0xb
+#define OUR_EMS_ADDRESS     0x0b
+#define EMS_REQUEST_MASK    0x80
+#define EMS_MSG_TYPE_RESP   0xff
+#define EMS_RESPONSE_OK     0x01
+#define EMS_RESPONSE_FAIL   0x04
 
 #define EMS_UART_INPUT_BUFSIZE 16
+#define EOP_BYTE(value) (value >> 3)
+#define EOP_BIT(value) (1 << (value & 0x7))
 struct ems_uart_input_buffer {
   uint8_t data[EMS_UART_INPUT_BUFSIZE];
   uint8_t count;
@@ -40,6 +46,8 @@ struct ems_stats {
   uint32_t dropped_bytes;
   uint32_t onebyte_packets;
   uint32_t onebyte_own_packets;
+  uint32_t onebyte_ack_packets;
+  uint32_t onebyte_nack_packets;
   uint32_t good_packets;
   uint32_t bad_packets;
   uint32_t dropped_packets;
@@ -60,6 +68,8 @@ void ems_periodic_timeout(void);
 uint8_t ems_process_txdata(uint8_t *data, uint16_t len);
 uint8_t ems_calc_checksum(const uint8_t *buffer, uint8_t size);
 uint8_t ems_net_connected(void);
+void ems_uart_got_response(void);
+void ems_add_source_to_eop(uint8_t source);
 
 void ems_uart_init(void);
 void ems_uart_periodic(void);
