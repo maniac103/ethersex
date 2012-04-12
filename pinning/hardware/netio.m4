@@ -14,9 +14,11 @@ ifdef(`conf_ONEWIRE', `dnl
 ifdef(`conf_STELLA', `dnl
   /* stella port 1 */
   STELLA_PORT1_RANGE(PC0, PC7)
+  dnl /* stella port 2*/
+  dnl STELLA_PORT2_RANGE(PA0, PA3)
+  STELLA_USE_TIMER(2)
 ')dnl
 
-dnl STELLA_PORT2_RANGE(PA0, PA3)
 
 ifdef(`conf_STATUSLED_POWER', `dnl
 pin(STATUSLED_POWER, PA3, OUTPUT)
@@ -45,7 +47,7 @@ pin(FS20_RECV, PB3)
 
 ifdef(`conf_RFM12', `dnl
 /* port the rfm12 module CS is attached to */
-pin(SPI_CS_RFM12, PD5, OUTPUT)
+pin(SPI_CS_RFM12_0, PD5, OUTPUT)
 RFM12_USE_INT(1)
 RFM12_ASK_SENSE_USE_INT(1)
 ')
@@ -84,9 +86,18 @@ ifdef(`conf_HD44780', `
   pin(HD44780_D7, PD7)
 ')
 
+ifdef(`conf_HD44780_BACKLIGHT', `
+  pin(HD44780_BL, PB1, OUTPUT)
+')
+
 ifdef(`conf_EMS', `
   pin(EMS_UART_TX, PD3)
   pin(EMS_LED_BLUE, PD4)
   pin(EMS_LED_GREEN, PD6)
   pin(EMS_LED_RED, PB0)
 ')
+
+ifdef(`conf_DCF77', `dnl
+  DCF77_USE_INT(1, PD3)
+  pin(DCF1_PON, PA1, OUTPUT)
+')dnl
