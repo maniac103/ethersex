@@ -131,11 +131,7 @@ void network_process(void)
     }
 
     /* packet receive flag */
-    if ( (EIR & _BV(PKTIF))
-#   ifdef ENC28J60_REV4_WORKAROUND
-	    || pktcnt
-#   endif
-       ) {
+    if ( (EIR & _BV(PKTIF)) || pktcnt ) {
       if (uip_buf_lock ())
 	return;			/* already locked */
 
