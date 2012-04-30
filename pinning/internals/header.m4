@@ -129,7 +129,7 @@ define(`RC5_USE_INT', `dnl
 define(`RFM12_ASK_SENSE_USE_INT', `dnl
 /* rfm12 ask sense interrupt line */
 #define RFM12_ASKINT_PIN INT$1
-#define RFM12_ASKINT_ISC _ISC($1,1)
+#define RFM12_ASKINT_ISC _ISC($1,0)
 #define RFM12_ASKINT_ISCMASK (_ISC($1,0) | _ISC($1,1))
 #define RFM12_ASKINT_VECTOR INT$1`_vect'
 ')
