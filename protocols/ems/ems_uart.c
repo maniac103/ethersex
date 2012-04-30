@@ -113,7 +113,7 @@ switch_mode(uint8_t tx)
 static void
 go_to_rx(void)
 {
-  ems_set_led(LED_BLUE, 1, 1);
+  ems_set_led(LED_BLUE, 0, 0);
   /* drain input buffer */
   while (usart(UCSR,A) & _BV(usart(RXC))) {
     uint8_t data = usart(UDR);
@@ -186,6 +186,7 @@ ISR(usart(USART,_UDRE_vect))
             response_wait_mode = WAIT_FOR_ACK;
           }
           last_send_dest = byte & ~EMS_REQUEST_MASK;
+          ems_set_led(LED_BLUE, 1, 0);
         }
         ems_send_buffer.sent++;
         last_sent_byte = byte;
@@ -245,7 +246,6 @@ ISR(usart(USART,_RX_vect))
 
       if (is_polled()) {
         UPDATE_STATS(onebyte_own_packets, 1);
-        ems_set_led(LED_BLUE, 1, 0);
         state = STATE_TX_ADDR;
         switch_mode(1);
 #ifdef EMS_DEBUG
