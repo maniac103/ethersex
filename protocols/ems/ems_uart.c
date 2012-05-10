@@ -258,7 +258,52 @@ ISR(usart(USART,_RX_vect))
   }
 }
 
+#ifdef EMS_DEBUG_UART_ECMD
+
+#include "core/bit-macros.h"
+#include "core/debug.h"
+#include "protocols/ecmd/ecmd-base.h"
+
+int16_t parse_cmd_ems_uart(char *cmd, char *output, uint16_t len)
+{
+  /* trick: use bytes on cmd as "connection specific static variables" */
+  if (cmd[0] != 23) {  /* indicator flag: real invocation:  0 */
+    cmd[0] = 23;       /*                 continuing call: 23 */
+    cmd[1] = 0;        /* counter for output lines */
+  } else {
+    cmd[1]++;          /* iterate to next output line */
+  }
+
+  enum {
+    CNT_STATE = 0,
+    CNT_RESPONSE_MODE,
+    CNT_UCSR_A,
+    CNT_UCSR_B,
+    CNT_TX_TIMEOUT
+  };
+
+  switch (cmd[1]) {
+    case CNT_STATE:
+      return ECMD_AGAIN(snprintf_P(output, len, PSTR("FSM:%d"), state));
+    case CNT_RESPONSE_MODE:
+      return ECMD_AGAIN(snprintf_P(output, len, PSTR("Response:%d"), response_wait_mode));
+    case CNT_UCSR_A:
+      return ECMD_AGAIN(snprintf_P(output, len, PSTR("UCSR A:0x%02x"), usart(UCSR, A)));
+    case CNT_UCSR_B:
+      return ECMD_AGAIN(snprintf_P(output, len, PSTR("UCSR B:0x%02x"), usart(UCSR, B)));
+    case CNT_TX_TIMEOUT:
+      return ECMD_FINAL(snprintf_P(output, len, PSTR("TX timeout:%d"), tx_timeout));
+  }
+
+  return ECMD_FINAL_OK;	/* never reached */
+}
+#endif
+
 /*
   -- Ethersex META --
   timer(5, ems_uart_periodic())
+  block([[EMS]] commands)
+  ecmd_ifdef(EMS_DEBUG_UART_ECMD)
+    ecmd_feature(ems_uart, "ems uart", , Report UART debug information)
+  ecmd_endif()
 */
