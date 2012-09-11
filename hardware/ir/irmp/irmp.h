@@ -4,7 +4,7 @@
  * for additional information please
  * see http://www.mikrocontroller.net/articles/IRMP
  *
- * Copyright (c) 2010 by Erik Kunze <ethersex@erik-kunze.de>
+ * Copyright (c) 2010-12 by Erik Kunze <ethersex@erik-kunze.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License (either version 2 or
@@ -65,6 +65,7 @@ typedef enum
   IRMP_PROTO_NEC42,             /* NEC with 42 bits */
   IRMP_PROTO_LEGO,              /* LEGO Power Functions RC */
   IRMP_PROTO_THOMSON,           /* Thomson */
+  IRMP_PROTO_BOSE,              /* Bose */
 } irmp_prot_e;
 
 typedef struct
