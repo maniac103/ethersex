@@ -37,32 +37,37 @@
 #ifdef CH_C_PWM_GENERAL_SUPPORT
   uint8_t channelCval=PWM_MIN_VALUE;
 #endif /* CH_C_PWM_GENERAL_SUPPORT */
+#ifdef CH_D_PWM_GENERAL_SUPPORT
+  uint8_t channelDval=PWM_MIN_VALUE;
+#endif
 
 #ifdef PWM_GENERAL_FADING_SUPPORT
   int8_t fadingAspeed=0;  // 0 = disable
   int8_t fadingBspeed=0;
   int8_t fadingCspeed=0;
+  int8_t fadingDspeed=0;
 #endif /* PWM_GENERAL_FADING_SUPPORT */
 
 // init DDR, waveform and timer
 void
 pwm_init(){
+#if defined(CH_A_PWM_GENERAL_SUPPORT) || defined(CH_B_PWM_GENERAL_SUPPORT) || defined(CH_C_PWM_GENERAL_SUPPORT)
   TC1_COUNTER_CURRENT=0x00FF; //set the timer counter
-#ifdef CH_A_PWM_GENERAL_SUPPORT
+# ifdef CH_A_PWM_GENERAL_SUPPORT
   DDR_CONFIG_OUT(CHANNEL_A_PWM); 		// PWM OUTPUT
   TC1_COUNTER_COMPARE=channelAval;
   TCCR1A|=_BV(COM1A1)|_BV(COM1A0); 		// Set OCnA on compare match
-#endif /* CH_A_PWM_GENERAL_SUPPORT */
-#ifdef CH_B_PWM_GENERAL_SUPPORT
+# endif /* CH_A_PWM_GENERAL_SUPPORT */
+# ifdef CH_B_PWM_GENERAL_SUPPORT
   DDR_CONFIG_OUT(CHANNEL_B_PWM); 		// PWM OUTPUT
   OCR1B=channelBval;
   TCCR1A|=_BV(COM1B1)|_BV(COM1B0); 		// Set OCnB on compare match
-#endif /* CH_B_PWM_GENERAL_SUPPORT */
-#ifdef CH_C_PWM_GENERAL_SUPPORT
+# endif /* CH_B_PWM_GENERAL_SUPPORT */
+# ifdef CH_C_PWM_GENERAL_SUPPORT
   DDR_CONFIG_OUT(CHANNEL_C_PWM); 		// PWM OUTPUT
   OCR1C=channelCval;
   TCCR1A|=_BV(COM1C1)|_BV(COM1C0); 		// Set OCnC on compare match
-#endif /* CH_C_PWM_GENERAL_SUPPORT */
+# endif /* CH_C_PWM_GENERAL_SUPPORT */
 
   TCCR1A|=_BV(WGM10);  					// PWM, Phase Correct, 8-bit
 
@@ -70,27 +75,39 @@ pwm_init(){
   TCCR1B|=_BV(CS10); 					// clockselect: clkI/O/1 (No prescaling)
 
   // activate PWM outports OC1C
-#ifdef CH_A_PWM_GENERAL_SUPPORT
+# ifdef CH_A_PWM_GENERAL_SUPPORT
   #if defined(_ATMEGA128)
   TCCR1C|=1<<FOC1A;					// with atmega128
   #else
   TCCR1A|=1<<FOC1A;  					// with atmega32
   #endif
-#endif /* CH_A_PWM_GENERAL_SUPPORT */
-#ifdef CH_B_PWM_GENERAL_SUPPORT
+# endif /* CH_A_PWM_GENERAL_SUPPORT */
+# ifdef CH_B_PWM_GENERAL_SUPPORT
   #if defined(_ATMEGA128)
   TCCR1C|=1<<FOC1B;					// with atmega128
   #else
   TCCR1A|=1<<FOC1B;						// with atmega 32
   #endif
-#endif /* CH_B_PWM_GENERAL_SUPPORT */
-#ifdef CH_C_PWM_GENERAL_SUPPORT
+# endif /* CH_B_PWM_GENERAL_SUPPORT */
+# ifdef CH_C_PWM_GENERAL_SUPPORT
   #if defined(_ATMEGA128)
   TCCR1C|=1<<FOC1C;  					// with atmega128
   #else
   TCCR1A|=1<<FOC1C; 					// with atmega 32
   #endif
-#endif /* CH_C_PWM_GENERAL_SUPPORT */
+# endif /* CH_C_PWM_GENERAL_SUPPORT */
+
+#endif /* CH_A_PWM_GENERAL_SUPPORT || CH_B_PWM_GENERAL_SUPPORT || CH_C_PWM_GENERAL_SUPPORT */
+
+#ifdef CH_D_PWM_GENERAL_SUPPORT
+  TC0_COUNTER_CURRENT = 0xFF;
+  DDR_CONFIG_OUT(CHANNEL_D_PWM);
+  TC0_COUNTER_COMPARE = channelDval;
+  TCCR0A |= _BV(COM0A1) | _BV(COM0A0);		// Set OC1A on compare match
+  TCCR0A |= _BV(WGM00);				// PWM, phase correct
+  TCCR0B |= _BV(WGM02);
+  TCCR0B |= _BV(CS00);				// no prescaling
+#endif /* CH_D_PWM_GENERAL_SUPPORT */
 
 }
 
@@ -111,6 +128,10 @@ getpwm(char channel){
     case 'c': ret=channelCval;
 	  break;
 #endif /* CH_A_PWM_GENERAL_SUPPORT */
+#ifdef CH_D_PWM_GENERAL_SUPPORT
+    case 'd': ret = channelDval;
+	  break;
+#endif /* CH_D_PWM_GENERAL_SUPPORT */
     default:
     PWMDEBUG ("channel %c unsupported\n",channel);
   }
@@ -147,6 +168,12 @@ setpwm(char channel, uint8_t setval){
 	  channelCval=setval;
 	  break;
 #endif /* CH_A_PWM_GENERAL_SUPPORT */
+#ifdef CH_D_PWM_GENERAL_SUPPORT
+    case 'd':
+      OCR0A = setval;
+      channelDval = setval;
+      break;
+#endif /* CH_D_PWM_GENERAL_SUPPORT */
     default:
     PWMDEBUG ("channel %c unsupported\n",channel);
   }
@@ -168,6 +195,9 @@ int16_t parse_cmd_pwm_command(char *cmd, char *output, uint16_t len)
 #ifdef CH_C_PWM_GENERAL_SUPPORT
     PWMDEBUG ("c: %i\n",getpwm('c'));
 #endif /* CH_C_PWM_GENERAL_SUPPORT */
+#ifdef CH_D_PWM_GENERAL_SUPPORT
+    PWMDEBUG ("d: %i\n",getpwm('d'));
+#endif /* CH_D_PWM_GENERAL_SUPPORT */
     return ECMD_FINAL_OK;
   }
   if (cmd[2]=='\0') {
@@ -199,6 +229,9 @@ int16_t parse_cmd_pwm_fade_command(char *cmd, char *output, uint16_t len)
 #ifdef CH_C_PWM_GENERAL_SUPPORT
 	case 'c': fadingCspeed=diff; break;
 #endif /* CH_C_PWM_GENERAL_SUPPORT */
+#ifdef CH_D_PWM_GENERAL_SUPPORT
+	case 'd': fadingDspeed=diff; break;
+#endif /* CH_D_PWM_GENERAL_SUPPORT */
   }
 
   return ECMD_FINAL_OK;
@@ -249,6 +282,19 @@ pwm_periodic()
       setpwm('c',chCdiff);
   }
  #endif /* CH_C_PWM_GENERAL_SUPPORT */
+ #ifdef CH_D_PWM_GENERAL_SUPPORT
+  if (fadingDspeed!=0){
+    int16_t chDdiff = getpwm('d')+fadingDspeed;
+    if (chDdiff >= PWM_MIN_VALUE) {
+      fadingDspeed=0;
+      setpwm('d',PWM_MIN_VALUE);
+    } else if (chDdiff<=0) {
+      fadingDspeed=0;
+      setpwm('d',PWM_MAX_VALUE);
+    } else
+      setpwm('d',chDdiff);
+  }
+ #endif /* CH_D_PWM_GENERAL_SUPPORT */
 
 #endif /* PWM_GENERAL_FADING_SUPPORT */
 }

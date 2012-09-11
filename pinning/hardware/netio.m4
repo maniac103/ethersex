@@ -97,6 +97,10 @@ ifdef(`conf_EMS', `
   pin(EMS_LED_RED, PB0)
 ')
 
+ifdef(`conf_CH_D_PWM_GENERAL', `
+  pin(CHANNEL_D_PWM, PB3) dnl OC0
+')
+
 ifdef(`conf_DCF77', `dnl
   DCF77_USE_INT(1, PD3)
   pin(DCF1_PON, PA1, OUTPUT)
