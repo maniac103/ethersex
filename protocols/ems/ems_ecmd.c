@@ -1,10 +1,9 @@
 /*
- *
  * Copyright (c) 2011 by Danny Baumann <dannybaumann@web.de>
  *
  * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License (either version 2 or
- * version 3) as published by the Free Software Foundation.
+ * under the terms of the GNU General Public License (version 3)
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of

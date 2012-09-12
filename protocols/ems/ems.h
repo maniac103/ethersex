@@ -1,13 +1,9 @@
 /*
- *
- * Copyright (c) 2008 by Christian Dietrich <stettberger@dokucode.de>
- * Copyright (c) 2010 by Erik Kunze <ethersex@erik-kunze.de>
  * Copyright (c) 2011 by Danny Baumann <dannybaumann@web.de>
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License (version 3)
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -73,6 +69,9 @@ void ems_add_source_to_eop(uint8_t source);
 
 void ems_uart_init(void);
 void ems_uart_periodic(void);
+
+void ems_net_init(void);
+void ems_net_main(void);
 
 #define FRAMEEND _BV(0)
 #define ERROR    _BV(1)

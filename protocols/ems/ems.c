@@ -1,13 +1,11 @@
 /*
- *
  * Copyright (c) 2008 by Christian Dietrich <stettberger@dokucode.de>
  * Copyright (c) 2010 by Erik Kunze <ethersex@erik-kunze.de>
  * Copyright (c) 2011 by Danny Baumann <dannybaumann@web.de>
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License (version 3)
+ * as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -27,7 +25,6 @@
 #include <string.h>
 #include "config.h"
 #include "ems.h"
-#include "ems_net.h"
 
 struct ems_uart_input_buffer ems_input_buffer;
 struct ems_buffer ems_send_buffer;
