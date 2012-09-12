@@ -108,9 +108,9 @@ pwm_init(){
   DDR_CONFIG_OUT(CHANNEL_D_PWM);
   TC0_COUNTER_CURRENT = 0xFF;
   TC0_COUNTER_COMPARE = channelDval;
-  TCCR0A = _BV(COM0A1) | _BV(COM0A0);		// Set OC1A on compare match
-  TCCR0A |= _BV(WGM00);				// PWM, phase correct
-  TCCR0B = _BV(CS00);				// no prescaling
+  TC0_MODE_PWM;
+  TC0_OUTPUT_COMPARE_SET;
+  TC0_PRESCALER_1;
 #endif /* CH_D_PWM_GENERAL_SUPPORT */
 
 }
