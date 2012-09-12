@@ -46,6 +46,10 @@
   int8_t fadingBspeed=0;
   int8_t fadingCspeed=0;
   int8_t fadingDspeed=0;
+  uint8_t fadingAend=0;
+  uint8_t fadingBend=0;
+  uint8_t fadingCend=0;
+  uint8_t fadingDend=0;
 #endif /* PWM_GENERAL_FADING_SUPPORT */
 
 // init DDR, waveform and timer
@@ -214,23 +218,57 @@ int16_t parse_cmd_pwm_fade_command(char *cmd, char *output, uint16_t len)
 {
   uint8_t channel=cmd[1];
   int8_t diff=atoi(cmd+3);
-  uint8_t startvalue=atoi(cmd+8);
+  uint8_t startvalue, endvalue;
+  const char *pos;
 
-  PWMDEBUG ("set ch: %c, diff %i, start %i\n",channel, diff,startvalue);
+  pos = strchr(cmd + 3, ' ');
+  if (pos == NULL) {
+    return ECMD_ERR_PARSE_ERROR;
+  }
+  startvalue = atoi(pos + 1);
+
+  pos = strchr(pos + 1, ' ');
+  if (pos != NULL) {
+    endvalue = atoi(pos);
+  } else if (diff < 0) {
+    endvalue = PWM_MAX_VALUE;
+  } else if (diff > 0) {
+    endvalue = PWM_MIN_VALUE;
+  }
+
+  if (diff < 0 && endvalue >= startvalue) {
+    endvalue = PWM_MAX_VALUE;
+  } else if (diff > 0 && endvalue <= startvalue) {
+    endvalue = PWM_MIN_VALUE;
+  }
+
+  PWMDEBUG ("set ch: %c, diff %i, start %i, end %i\n",channel, diff, startvalue, endvalue);
   setpwm(channel,startvalue);
 
-  switch (channel){
+  switch (channel) {
 #ifdef CH_A_PWM_GENERAL_SUPPORT
-	case 'a': fadingAspeed=diff; break;
+    case 'a':
+      fadingAspeed = diff;
+      fadingAend = endvalue;
+      break;
 #endif /* CH_A_PWM_GENERAL_SUPPORT */
 #ifdef CH_B_PWM_GENERAL_SUPPORT
-	case 'b': fadingBspeed=diff; break;
+    case 'b':
+      fadingBspeed = diff;
+      fadingBend = endvalue;
+      break;
 #endif /* CH_B_PWM_GENERAL_SUPPORT */
 #ifdef CH_C_PWM_GENERAL_SUPPORT
-	case 'c': fadingCspeed=diff; break;
+    case 'c':
+      fadingCspeed = diff;
+      fadingCend = endvalue;
+      break;
 #endif /* CH_C_PWM_GENERAL_SUPPORT */
 #ifdef CH_D_PWM_GENERAL_SUPPORT
-	case 'd': fadingDspeed=diff; break;
+    case 'd':
+      fadingDspeed = diff;
+      fadingDend = endvalue;
+      break;
 #endif /* CH_D_PWM_GENERAL_SUPPORT */
   }
 
@@ -246,12 +284,10 @@ pwm_periodic()
  #ifdef CH_A_PWM_GENERAL_SUPPORT
   if (fadingAspeed!=0){
     int16_t chAdiff = getpwm('a')+fadingAspeed;
-    if (chAdiff >= PWM_MIN_VALUE) {
+    if (fadingAspeed > 0 && chAdiff >= fadingAend ||
+        fadingAspeed < 0 && chAdiff <= fadingAend) {
       fadingAspeed=0;
-      setpwm('a',PWM_MIN_VALUE);
-    } else if (chAdiff<=0) {
-      fadingAspeed=0;
-      setpwm('a',PWM_MAX_VALUE);
+      setpwm('a', fadingAend);
     } else
       setpwm('a',chAdiff);
   }
@@ -259,12 +295,10 @@ pwm_periodic()
  #ifdef CH_B_PWM_GENERAL_SUPPORT
   if (fadingBspeed!=0){
     int16_t chBdiff = getpwm('b')+fadingBspeed;
-    if (chBdiff >= PWM_MIN_VALUE) {
+    if (fadingBspeed > 0 && chBdiff >= fadingBend ||
+        fadingBspeed < 0 && chBdiff <= fadingBend) {
       fadingBspeed=0;
-      setpwm('b',PWM_MIN_VALUE);
-    } else if (chBdiff<=0) {
-      fadingBspeed=0;
-      setpwm('b',PWM_MAX_VALUE);
+      setpwm('b', fadingBend);
     } else
       setpwm('b',chBdiff);
   }
@@ -272,12 +306,10 @@ pwm_periodic()
  #ifdef CH_C_PWM_GENERAL_SUPPORT
   if (fadingCspeed!=0){
     int16_t chCdiff = getpwm('c')+fadingCspeed;
-    if (chCdiff >= PWM_MIN_VALUE) {
+    if (fadingCspeed > 0 && chCdiff >= fadingCend ||
+        fadingCspeed < 0 && chCdiff <= facingCend) {
       fadingCspeed=0;
-      setpwm('c',PWM_MIN_VALUE);
-    } else if (chCdiff<=0) {
-      fadingCspeed=0;
-      setpwm('c',PWM_MAX_VALUE);
+      setpwm('c',fadingCend);
     } else
       setpwm('c',chCdiff);
   }
@@ -285,12 +317,10 @@ pwm_periodic()
  #ifdef CH_D_PWM_GENERAL_SUPPORT
   if (fadingDspeed!=0){
     int16_t chDdiff = getpwm('d')+fadingDspeed;
-    if (chDdiff >= PWM_MIN_VALUE) {
+    if (fadingDspeed > 0 && chDdiff >= fadingDend ||
+        fadingDspeed < 0 && chDdiff <= fadingDend) {
       fadingDspeed=0;
-      setpwm('d',PWM_MIN_VALUE);
-    } else if (chDdiff<=0) {
-      fadingDspeed=0;
-      setpwm('d',PWM_MAX_VALUE);
+      setpwm('d',fadingDend);
     } else
       setpwm('d',chDdiff);
   }
@@ -308,7 +338,7 @@ pwm_periodic()
   timer(5, pwm_periodic())
   block([[PWM]])
   ecmd_ifdef(PWM_GENERAL_FADING_SUPPORT)
-    ecmd_feature(pwm_fade_command, "pwm fade", [channel +-diff startvalue], Set fading at channel with startvalue and change each stepp to diff (must be signed 3 digit))
+    ecmd_feature(pwm_fade_command, "pwm fade", [channel +-diff startvalue endvalue], Set fading at channel with startvalue and change each step to diff until endvalue is reached)
   ecmd_endif()
   ecmd_feature(pwm_command, "pwm set", [channel value], Set channel to value)
 */
