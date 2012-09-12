@@ -232,9 +232,9 @@ int16_t parse_cmd_pwm_fade_command(char *cmd, char *output, uint16_t len)
   endvalue = atoi(pos + 1);
 
   if (diff < 0 && endvalue >= startvalue) {
-    endvalue = PWM_MAX_VALUE;
+    diff = -diff;
   } else if (diff > 0 && endvalue <= startvalue) {
-    endvalue = PWM_MIN_VALUE;
+    diff = -diff;
   }
 
   PWMDEBUG ("set ch: %c, diff %i, start %i, end %i\n",channel, diff, startvalue, endvalue);
