@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <avr/pgmspace.h>
 
 #include "pwm_common.h"
@@ -216,24 +217,19 @@ int16_t parse_cmd_pwm_command(char *cmd, char *output, uint16_t len)
 int16_t parse_cmd_pwm_fade_command(char *cmd, char *output, uint16_t len) 
 {
   uint8_t channel=cmd[1];
-  int8_t diff=atoi(cmd+3);
+  int8_t diff;
   uint8_t startvalue, endvalue;
-  const char *pos;
+  char *pos;
 
   pos = strchr(cmd + 3, ' ');
   if (pos == NULL) {
     return ECMD_ERR_PARSE_ERROR;
   }
-  startvalue = atoi(pos + 1);
 
-  pos = strchr(pos + 1, ' ');
-  if (pos != NULL) {
-    endvalue = atoi(pos);
-  } else if (diff < 0) {
-    endvalue = PWM_MAX_VALUE;
-  } else if (diff > 0) {
-    endvalue = PWM_MIN_VALUE;
-  }
+  *pos = 0;
+  diff = atoi(cmd + 3);
+  startvalue = getpwm(channel);
+  endvalue = atoi(pos + 1);
 
   if (diff < 0 && endvalue >= startvalue) {
     endvalue = PWM_MAX_VALUE;
@@ -242,7 +238,6 @@ int16_t parse_cmd_pwm_fade_command(char *cmd, char *output, uint16_t len)
   }
 
   PWMDEBUG ("set ch: %c, diff %i, start %i, end %i\n",channel, diff, startvalue, endvalue);
-  setpwm(channel,startvalue);
 
   switch (channel) {
 #ifdef CH_A_PWM_GENERAL_SUPPORT
@@ -337,7 +332,7 @@ pwm_periodic()
   timer(5, pwm_periodic())
   block([[PWM]])
   ecmd_ifdef(PWM_GENERAL_FADING_SUPPORT)
-    ecmd_feature(pwm_fade_command, "pwm fade", [channel +-diff startvalue endvalue], Set fading at channel with startvalue and change each step to diff until endvalue is reached)
+    ecmd_feature(pwm_fade_command, "pwm fade", [channel +-diff endvalue], Set fading at channel, change each step to diff until endvalue is reached)
   ecmd_endif()
   ecmd_feature(pwm_command, "pwm set", [channel value], Set channel to value)
 */
