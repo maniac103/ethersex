@@ -92,9 +92,9 @@ ifdef(`conf_HD44780_BACKLIGHT', `
 
 ifdef(`conf_EMS', `
   pin(EMS_UART_TX, PD3)
-  pin(EMS_LED_BLUE, PD4)
-  pin(EMS_LED_GREEN, PD6)
-  pin(EMS_LED_RED, PB0)
+  pin(EMS_LED_TX, PD4)
+  pin(EMS_LED_RX_OK, PD6)
+  pin(EMS_LED_RX_FAIL, PB0)
 ')
 
 ifdef(`conf_CH_D_PWM_GENERAL', `
