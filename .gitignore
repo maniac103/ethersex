@@ -27,6 +27,11 @@ scripts/lxdialog/lxdialog
 .menuconfig.log
 .menuconfig.old
 
+# eclipse project files
+.project
+.cproject
+.settings/*
+
 # control6
 control6/control6.c
 control6/control6.h
