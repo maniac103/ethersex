@@ -71,9 +71,6 @@
 /* rc5 support */
 #define RC5_QUEUE_LENGTH 10
 
-/* bootloader config */
-#define CONF_BOOTLOAD_DELAY 250           /* five seconds */
-
 /* rfm12 config */
 #define RFM12_FREQ_433920	433920
 #define RFM12_FREQ_868300	868300

@@ -56,6 +56,8 @@ dnl
 #define TC0_INT_OVERFLOW_ON  TIMSK0|=_BV(TOIE0);
 #define TC0_INT_OVERFLOW_OFF TIMSK0&=~_BV(TOIE0);
 
+#define TC0_INT_COMPARE_TST  (TIFR0&_BV(OCF0))
+#define TC0_INT_COMPARE_CLR  TIFR0=_BV(OCF0);
 #define TC0_INT_OVERFLOW_TST (TIFR0&_BV(TOV0))
 #define TC0_INT_OVERFLOW_CLR TIFR0=_BV(TOV0);
 
@@ -118,6 +120,8 @@ dnl
 #define TC2_INT_OVERFLOW_ON  TIMSK2|=_BV(TOIE2);
 #define TC2_INT_OVERFLOW_OFF TIMSK2&=~_BV(TOIE2);
 
+#define TC2_INT_COMPARE_TST  (TIFR2&_BV(OCF2A))
+#define TC2_INT_COMPARE_CLR  TIFR2=_BV(OCF2A);
 #define TC2_INT_OVERFLOW_TST (TIFR2&_BV(TOV2))
 #define TC2_INT_OVERFLOW_CLR TIFR2=_BV(TOV2);
 
@@ -179,6 +183,18 @@ dnl
 #define _PWM_MELODY_CS0 CS20
 #define _PWM_MELODY_TIMSK TIMSK2
 #define _PWM_MELODY_OCIE OCIE2A
+
+#define RXD0_PORT  D
+#define RXD0_PIN   0
+
+#define TXD0_PORT  D
+#define TXD0_PIN   1
+
+#define RXD1_PORT  D
+#define RXD1_PIN   2
+
+#define TXD1_PORT  D
+#define TXD1_PIN   3
 
 /* workaround for avr-libc devs not being able to decide how these registers
  * should be named... */

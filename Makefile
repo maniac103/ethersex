@@ -20,6 +20,7 @@ SUBDIRS += hardware/dac
 SUBDIRS += hardware/clock/dcf77
 SUBDIRS += hardware/camera
 SUBDIRS += hardware/ethernet
+SUBDIRS += hardware/dht
 SUBDIRS += hardware/i2c/master
 SUBDIRS += hardware/i2c/slave
 SUBDIRS += hardware/input
@@ -51,6 +52,7 @@ SUBDIRS += protocols/bootp
 SUBDIRS += protocols/dali
 SUBDIRS += protocols/dhcp 
 SUBDIRS += protocols/dmx
+SUBDIRS += protocols/eltakoms
 SUBDIRS += protocols/ems
 SUBDIRS += protocols/fnordlicht
 SUBDIRS += protocols/mdns_sd
@@ -142,7 +144,7 @@ all: compile-$(TARGET)
 	@echo "=======The ethersex project========"
 	@echo "Compiled for: $(MCU) at $(FREQ)Hz"
 	@$(CONFIG_SHELL) ${TOPDIR}/scripts/size $(TARGET) $(MCU) $(BOOTLOADER_SUPPORT) $(BOOTLOADER_SIZE)
-	@$(CONFIG_SHELL) ${TOPDIR}/scripts/eeprom-usage "$(CFLAGS)" "$(CPPFLAGS)"
+	@$(CONFIG_SHELL) ${TOPDIR}/scripts/eeprom-usage "$(CFLAGS)" "$(CPPFLAGS)" 2> /dev/null
 	@echo "==================================="
 endif
 .PHONY: all
@@ -344,7 +346,8 @@ endif
 
 ##############################################################################
 ### Special case for MacOS X and FreeBSD
-CONFIG_SHELL := $(shell if [ x"`uname`" = x"Darwin" ] ; then echo /opt/local/bin/bash; \
+CONFIG_SHELL := $(shell if [ x"`uname`" = x"Darwin" ] && [ -x /opt/local/bin/bash ] ; then echo /opt/local/bin/bash; \
+          elif [ x"`uname`" = x"Darwin" ] && [ -x /usr/local/bin/bash ] ; then echo /usr/local/bin/bash; \
           elif [ x"`uname`" = x"FreeBSD" ]; then echo /usr/local/bin/bash; \
           elif [ -x "$$BASH" ]; then echo $$BASH; \
           elif [ -x /bin/bash ]; then echo /bin/bash; \

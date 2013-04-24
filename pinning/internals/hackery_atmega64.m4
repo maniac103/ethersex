@@ -36,6 +36,8 @@
 #define TC0_INT_OVERFLOW_ON  TIMSK|=_BV(TOIE0);
 #define TC0_INT_OVERFLOW_OFF TIMSK&=~_BV(TOIE0);
 
+#define TC0_INT_COMPARE_TST  (TIFR&_BV(OCF0))
+#define TC0_INT_COMPARE_CLR  TIFR=_BV(OCF0);
 #define TC0_INT_OVERFLOW_TST (TIFR&_BV(TOV0))
 #define TC0_INT_OVERFLOW_CLR TIFR=_BV(TOV0);
 
@@ -96,6 +98,8 @@
 #define TC2_INT_OVERFLOW_ON  TIMSK|=_BV(TOIE2);
 #define TC2_INT_OVERFLOW_OFF TIMSK&=~_BV(TOIE2);
 
+#define TC2_INT_COMPARE_TST  (TIFR&_BV(OCF2))
+#define TC2_INT_COMPARE_CLR  TIFR=_BV(OCF2);
 #define TC2_INT_OVERFLOW_TST (TIFR&_BV(TOV2))
 #define TC2_INT_OVERFLOW_CLR TIFR=_BV(TOV2);
 
@@ -145,6 +149,17 @@
 /* both tests combined */
 #define TIMER_8_AS_1_COUNTER_BUSY_TST (TIMER_8_AS_1_COMPARE_CONTROL_BUSY_TST || TIMER_8_AS_1_COUNTER_CURRENT_BUSY_TST)
 
+#define RXD0_PORT  E
+#define RXD0_PIN   0
+
+#define TXD0_PORT  E
+#define TXD0_PIN   1
+
+#define RXD1_PORT  D
+#define RXD1_PIN   2
+
+#define TXD1_PORT  D
+#define TXD1_PIN   3
 
 /* workaround for avr-libc devs not being able to decide how these registers
  * should be named... */

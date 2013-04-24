@@ -36,6 +36,8 @@
 #define TC0_INT_OVERFLOW_ON  TIMSK|=_BV(TOIE0);
 #define TC0_INT_OVERFLOW_OFF TIMSK&=~_BV(TOIE0);
 
+#define TC0_INT_COMPARE_TST  (TIFR&_BV(OCF0))
+#define TC0_INT_COMPARE_CLR  TIFR=_BV(OCF0);
 #define TC0_INT_OVERFLOW_TST (TIFR&_BV(TOV0))
 #define TC0_INT_OVERFLOW_CLR TIFR=_BV(TOV0);
 
@@ -89,18 +91,20 @@
 #define TC2_OUTPUT_COMPARE_SET    {TCCR2|=_BV(COM21)|_BV(COM20);}
 
 #define TC2_COUNTER_CURRENT  TCNT2
-#define TC2_COUNTER_COMPARE  OCR2
+#define TC2_COUNTER_COMPARE  OCR2A
 
-#define TC2_INT_COMPARE_ON   TIMSK|=_BV(OCIE2);
-#define TC2_INT_COMPARE_OFF  TIMSK&=~_BV(OCIE2);
+#define TC2_INT_COMPARE_ON   TIMSK|=_BV(OCIE2A);
+#define TC2_INT_COMPARE_OFF  TIMSK&=~_BV(OCIE2A);
 #define TC2_INT_OVERFLOW_ON  TIMSK|=_BV(TOIE2);
 #define TC2_INT_OVERFLOW_OFF TIMSK&=~_BV(TOIE2);
 
+#define TC2_INT_COMPARE_TST  (TIFR&_BV(OCF2A))
+#define TC2_INT_COMPARE_CLR  TIFR=_BV(OCF2A);
 #define TC2_INT_OVERFLOW_TST (TIFR&_BV(TOV2))
 #define TC2_INT_OVERFLOW_CLR TIFR=_BV(TOV2);
 #
 #define TC2_VECTOR_OVERFLOW  TIMER2_OVF_vect
-#define TC2_VECTOR_COMPARE   TIMER2_COMP_vect
+#define TC2_VECTOR_COMPARE   TIMER2_COMPA_vect
 
 /* First Asyncronous Timer */
 /* Flag for asyncronous operation */
@@ -157,6 +161,18 @@
 #define _PWM_MELODY_CS0 CS00
 #define _PWM_MELODY_TIMSK TIMSK
 #define _PWM_MELODY_OCIE OCIE0
+
+#define RXD0_PORT  E
+#define RXD0_PIN   0
+
+#define TXD0_PORT  E
+#define TXD0_PIN   1
+
+#define RXD1_PORT  D
+#define RXD1_PIN   2
+
+#define TXD1_PORT  D
+#define TXD1_PIN   3
 
 /* workaround for avr-libc devs not being able to decide how these registers
  * should be named... */
