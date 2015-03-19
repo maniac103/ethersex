@@ -53,7 +53,11 @@
 #define BIT_TIME  ((uint8_t)((F_CPU / BAUD) / PRESCALE))
 #define TX_TIMEOUT 10 /* x100ms = 1 second */
 
-#define USE_USART 1
+#ifndef EMS_USE_USART
+#define EMS_USE_USART 1
+#endif
+#define USE_USART EMS_USE_USART
+
 #include "core/usart.h"
 
 static volatile uint8_t state = STATE_RX;
