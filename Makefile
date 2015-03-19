@@ -3,118 +3,10 @@ TOPDIR = .
 
 SUBDIRS += control6
 SUBDIRS += core
-SUBDIRS += core/crypto
-SUBDIRS += core/host
-SUBDIRS += core/portio
-SUBDIRS += core/tty
-SUBDIRS += core/gui
-SUBDIRS += core/util
-SUBDIRS += core/vfs
-SUBDIRS += core/crc
 SUBDIRS += mcuf
-SUBDIRS += hardware/adc
-SUBDIRS += hardware/adc/kty
-SUBDIRS += hardware/adc/ads7822
-SUBDIRS += hardware/avr
-SUBDIRS += hardware/dac
-SUBDIRS += hardware/clock/dcf77
-SUBDIRS += hardware/camera
-SUBDIRS += hardware/ethernet
-SUBDIRS += hardware/dht
-SUBDIRS += hardware/i2c/master
-SUBDIRS += hardware/i2c/slave
-SUBDIRS += hardware/input
-SUBDIRS += hardware/input/ps2
-SUBDIRS += hardware/input/buttons
-SUBDIRS += hardware/io_expander
-SUBDIRS += hardware/ir/rc5
-SUBDIRS += hardware/ir/irmp
-SUBDIRS += hardware/isdn
-SUBDIRS += hardware/lcd
-SUBDIRS += hardware/lcd/s1d15g10
-SUBDIRS += hardware/lcd/ST7626
-SUBDIRS += hardware/lcd/s1d13305
-SUBDIRS += hardware/onewire
-SUBDIRS += hardware/pwm
-SUBDIRS += hardware/sms
-SUBDIRS += hardware/radio/fs20
-SUBDIRS += hardware/radio/rfm12
-SUBDIRS += hardware/sht
-SUBDIRS += hardware/sram
-SUBDIRS += hardware/storage/dataflash
-SUBDIRS += hardware/storage/sd_reader
-SUBDIRS += hardware/zacwire
-SUBDIRS += hardware/ultrasonic
-SUBDIRS += hardware/serial_ram/23k256
-SUBDIRS += hardware/hbridge
-SUBDIRS += protocols/artnet
-SUBDIRS += protocols/bootp
-SUBDIRS += protocols/dali
-SUBDIRS += protocols/dhcp 
-SUBDIRS += protocols/dmx
-SUBDIRS += protocols/eltakoms
-SUBDIRS += protocols/ems
-SUBDIRS += protocols/fnordlicht
-SUBDIRS += protocols/mdns_sd
-SUBDIRS += protocols/modbus
-SUBDIRS += protocols/mysql
-SUBDIRS += protocols/smtp
-SUBDIRS += protocols/sms77
-SUBDIRS += protocols/snmp
-SUBDIRS += protocols/syslog
-SUBDIRS += protocols/uip
-SUBDIRS += protocols/uip/ipchair
-SUBDIRS += protocols/ustream
-SUBDIRS += protocols/usb
-SUBDIRS += protocols/yport
-SUBDIRS += protocols/zbus
-SUBDIRS += protocols/dns
-SUBDIRS += protocols/ecmd/
-SUBDIRS += protocols/ecmd/sender
-SUBDIRS += protocols/ecmd/via_i2c
-SUBDIRS += protocols/ecmd/via_tcp
-SUBDIRS += protocols/ecmd/via_udp
-SUBDIRS += protocols/ecmd/via_usart
-SUBDIRS += protocols/irc
-SUBDIRS += protocols/soap
-SUBDIRS += protocols/httplog
-SUBDIRS += protocols/twitter
-SUBDIRS += protocols/netstat
-SUBDIRS += protocols/to1
-SUBDIRS += protocols/serial_line_log
-SUBDIRS += protocols/msr1
-SUBDIRS += protocols/nmea
-SUBDIRS += protocols/udpIO
-SUBDIRS += protocols/udpstella
-SUBDIRS += protocols/udpcurtain
-SUBDIRS += protocols/cw
-SUBDIRS += services/clock
-SUBDIRS += services/cron
-SUBDIRS += services/dyndns
-SUBDIRS += services/dmx-storage
-SUBDIRS += services/dmx-fxslot
-SUBDIRS += services/echo
-SUBDIRS += services/freqcount
-SUBDIRS += services/pam
-SUBDIRS += services/httpd
-SUBDIRS += services/jabber
-SUBDIRS += services/ntp
-SUBDIRS += services/wol
-SUBDIRS += services/motd
-SUBDIRS += services/moodlight
-SUBDIRS += services/stella
-SUBDIRS += services/starburst
-SUBDIRS += services/tanklevel
-SUBDIRS += services/tftp
-SUBDIRS += services/upnp
-SUBDIRS += services/appsample
-SUBDIRS += services/watchcat
-SUBDIRS += services/vnc
-SUBDIRS += services/watchasync
-SUBDIRS += services/curtain
-SUBDIRS += services/glcdmenu
-SUBDIRS += services/lome6
-SUBDIRS += services/projectors/sanyoZ700
+SUBDIRS += hardware
+SUBDIRS += protocols
+SUBDIRS += services
 
 rootbuild=t
 
@@ -194,6 +86,9 @@ SRC += ethersex.c
 ${UIP_SUPPORT}_SRC += network.c
 
 include $(foreach subdir,$(SUBDIRS),$(subdir)/Makefile)
+include $(foreach subdir,$(SUBSUBDIRS),$(subdir)/Makefile)
+
+SUBDIRS += ${SUBSUBDIRS}
 
 debug:
 	@echo SRC: ${SRC}
@@ -210,7 +105,7 @@ meta.m4: ${SRC} ${y_SRC} .config
 	@echo "Copying to meta.m4"
 	@if [ ! -e $@ ]; then cp $@.tmp $@; fi
 	@if ! diff $@.tmp $@ >/dev/null; then cp $@.tmp $@; fi
-	@rm -f $@.tmp
+	@$(RM) -f $@.tmp
 
 $(ECMD_PARSER_SUPPORT)_NP_SIMPLE_META_SRC = protocols/ecmd/ecmd_defs.m4 ${named_pin_simple_files}
 $(SOAP_SUPPORT)_NP_SIMPLE_META_SRC = protocols/ecmd/ecmd_defs.m4 ${named_pin_simple_files}
@@ -222,11 +117,19 @@ y_META_SRC += meta.m4
 $(ECMD_PARSER_SUPPORT)_META_SRC += protocols/ecmd/ecmd_defs.m4 ${named_pin_simple_files}
 y_META_SRC += $(y_NP_SIMPLE_META_SRC)
 
+meta.defines: autoconf.h pinning.c
+	scripts/m4-defines > $@.tmp
+	$(SED) -e "/^#define [A-Z].*_PIN /!d" -e "s/^#define \([^ 	]*\)_PIN.*/-Dpin_\1/;s/[()]/_/g" pinning.c >> $@.tmp
+	$(SED) -e ':a' -e 'N' -e '$$!ba' -e 's/\n/ /g' $@.tmp > $@
+	$(RM) $@.tmp
+
+$(y_META_SRC): meta.defines
+
 meta.c: $(y_META_SRC)
-	$(M4) `scripts/m4-defines` $^ > $@
+	$(M4) `cat meta.defines` $^ > $@
 
 meta.h: scripts/meta_header_magic.m4 meta.m4
-	$(M4) `scripts/m4-defines` $^ > $@
+	$(M4) `cat meta.defines` $^ > $@
 
 ##############################################################################
 
@@ -279,7 +182,7 @@ endif
 ##############################################################################
 
 ifeq ($(VFS_INLINE_SUPPORT),y)
-INLINE_FILES := $(shell ls embed/* | $(SED) '/\.tmp$$/d; /\.gz$$/d; s/\.cpp$$//; s/\.m4$$//; s/\.sh$$//;')
+INLINE_FILES := $(shell ls embed/* | $(SED) '/\.tmp$$/d; /\.gz$$/d; /~$$/d; s/\.cpp$$//; s/\.m4$$//; s/\.sh$$//;')
 ifeq ($(DEBUG_INLINE_FILES),y)
 .PRECIOUS = $(INLINE_FILES)
 endif
@@ -303,20 +206,23 @@ endif
 
 embed/%: embed/%.cpp
 	@if ! avr-cpp -xc -DF_CPU=$(FREQ) -I$(TOPDIR) -include autoconf.h $< 2> /dev/null > $@.tmp; \
-		then $(RM) $@; echo "--> Don't include $@ ($<)"; \
-	else $(SED) '/^$$/d; /^#[^#]/d' <$@.tmp > $@; \
-	  echo "--> Include $@ ($<)"; fi
+	  then $(RM) $@; echo "--> Don't include $@ ($<)"; \
+	  else $(SED) '/^$$/d; /^#[^#]/d' <$@.tmp > $@; echo "--> Include $@ ($<)";  \
+	fi
 	@$(RM) $@.tmp
 
 
 embed/%: embed/%.m4
 	@if ! $(M4) `scripts/m4-defines` $< > $@; \
-	  then $(RM) $@; echo "--> Don't include $@ ($<)";\
-		else echo "--> Include $@ ($<)";	fi
+	  then $(RM) $@; echo "--> Don't include $@ ($<)"; \
+	  else echo "--> Include $@ ($<)"; \
+	fi
 
 embed/%: embed/%.sh
-	@if ! $(CONFIG_SHELL) $< > $@; then $(RM) $@; echo "--> Don't include $@ ($<)"; \
-		else echo "--> Include $@ ($<)";	fi
+	@if ! $(CONFIG_SHELL) $< > $@; \
+	  then $(RM) $@; echo "--> Don't include $@ ($<)"; \
+	  else echo "--> Include $@ ($<)"; \
+	fi
 
 %.bin: % $(INLINE_FILES)
 	$(OBJCOPY) -O binary -R .eeprom $< $@
@@ -385,7 +291,7 @@ clean:
 		$(patsubst %.o,%.dep,${OBJECTS}) \
 		$(patsubst %.o,%.E,${OBJECTS}) \
 		$(patsubst %.o,%.s,${OBJECTS}) network.dep
-	$(RM) meta.c meta.h meta.m4
+	$(RM) meta.c meta.h meta.m4 meta.defines
 	echo "Cleaning completed"
 
 fullclean: clean
@@ -451,5 +357,6 @@ indent:
 
 .PHONY: indent
 
+include $(TOPDIR)/scripts/avrdude.mk
 
 include $(TOPDIR)/scripts/depend.mk

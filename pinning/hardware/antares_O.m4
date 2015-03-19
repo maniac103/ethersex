@@ -1,7 +1,6 @@
 /* port the enc28j60 is attached to */
 pin(SPI_CS_NET, SPI_CS_HARDWARE)
 pin(RS485TE_USART1, PD4, OUTPUT)
-#define DEBUG_USE_USART 1
 
 
 /* infrared support */
@@ -31,7 +30,6 @@ pin(IRMP_TX, PC2) dnl OC2/OC2A
 ifdef(`conf_STATUSLED_HB_ACT', `dnl
   pin(STATUSLED_HB_ACT, PD0, OUTPUT)
 ')dnl
-  pin(STATUSLED_HB_ACT, PD0, OUTPUT)
 
 
 ifdef(`conf_ONEWIRE', `dnl

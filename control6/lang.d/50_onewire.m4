@@ -31,7 +31,6 @@ divert(globals_divert)`
 
 #include <util/atomic.h>
 #include "hardware/onewire/onewire.h"
-#include "core/bit-macros.h"
 
 #ifdef ONEWIRE_POLLING_SUPPORT
 static int16_t
@@ -44,8 +43,8 @@ ow_read_temp(ow_rom_code_t *rom)
     if(ow_sensors[i].ow_rom_code.raw == rom->raw)
     {
       /*Found it*/
-      int16_t temp = ow_sensors[i].temp;
-      return temp;
+      ow_temp_t temp = ow_sensors[i].temp;
+      return (temp.twodigits ? temp.val / 10 : temp.val);
     }
   }
   /*Sensor is not in list*/
@@ -71,8 +70,8 @@ ow_read_temp(ow_rom_code_t *rom)
   }
   if (ret == 1)
   {
-    int16_t temp = ow_temp_normalize(rom, &sp);
-    retval = ((int8_t) HI8(temp)) * 10 + HI8(((temp & 0x00ff) * 10) + 0x80);
+    ow_temp_t temp = ow_temp_normalize(rom, &sp);
+    retval = (temp.twodigits ? temp.val / 10 : temp.val);
   }
 
   return retval;

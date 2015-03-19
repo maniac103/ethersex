@@ -4,11 +4,12 @@
  * for additional information please
  * see http://www.mikrocontroller.net/articles/IRMP
  *
- * Copyright (c) 2010-13 by Erik Kunze <ethersex@erik-kunze.de>
+ * Copyright (c) 2010-14 by Erik Kunze <ethersex@erik-kunze.de>
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License (either version 2 or
- * version 3) as published by the Free Software Foundation.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 3
+ * of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -33,7 +34,7 @@
 #include "irmp.h"
 
 
-#if defined(IRMP_SUPPORT_LEGO_PROTOCOL)
+#if defined(IRMP_SUPPORT_LEGO_PROTOCOL) || defined(IRMP_SUPPORT_RCMM_PROTOCOL)
 #define IRMP_HZ            20000        /* interrupts per second */
 #elif defined(IRMP_SUPPORT_SIEMENS_PROTOCOL) || defined(IRMP_SUPPORT_RECS80_PROTOCOL) || defined(IRMP_SUPPORT_RECS80EXT_PROTOCOL) || defined(IRMP_SUPPORT_RUWIDO_PROTOCOL)
 #define IRMP_HZ            15000
@@ -136,7 +137,11 @@
 #ifdef IRMP_RX_SUPPORT
 #define irmp_ISR irmp_rx_process
 #define irmp_get_data irmp_rx_get
+#define irmp_protocol_names irmp_proto_names
 #define IRMP_LOGGING 0
+#ifdef DEBUG_IRMP
+#define IRMP_PROTOCOL_NAMES 1
+#endif
 #include "lib/irmp.c"
 #endif
 #ifdef IRMP_TX_SUPPORT
@@ -173,79 +178,6 @@ static irmp_fifo_t irmp_rx_fifo;
 #endif
 #ifdef IRMP_TX_SUPPORT
 static irmp_fifo_t irmp_tx_fifo;
-#endif
-
-#ifdef DEBUG_IRMP
-static const char proto_unknown[] PROGMEM = "unknown";
-static const char proto_sircs[] PROGMEM = "SIRCS";
-static const char proto_nec[] PROGMEM = "NEC";
-static const char proto_samsung[] PROGMEM = "SAMSUNG";
-static const char proto_matshushita[] PROGMEM = "MATSUSHITA";
-static const char proto_kaseikyo[] PROGMEM = "KASEIKYO";
-static const char proto_recs80[] PROGMEM = "RECS80";
-static const char proto_rc5x[] PROGMEM = "RC5(x)";
-static const char proto_denon[] PROGMEM = "DENON";
-static const char proto_rc6[] PROGMEM = "RC6";
-static const char proto_samsung32[] PROGMEM = "SAMSUNG32";
-static const char proto_apple[] PROGMEM = "APPLE";
-static const char proto_recs80ext[] PROGMEM = "RECS80EXT";
-static const char proto_nubert[] PROGMEM = "NUBERT";
-static const char proto_bang_olufsen[] PROGMEM = "BANG&OLUFSEN";
-static const char proto_grundig[] PROGMEM = "GRUNDIG";
-static const char proto_nokia[] PROGMEM = "NOKIA";
-static const char proto_siemens[] PROGMEM = "SIEMENS";
-static const char proto_fdc[] PROGMEM = "FDC";
-static const char proto_rccar[] PROGMEM = "RCCAR";
-static const char proto_jvc[] PROGMEM = "JVC";
-static const char proto_rc6a[] PROGMEM = "RC6A";
-static const char proto_nikon[] PROGMEM = "NIKON";
-static const char proto_ruwido[] PROGMEM = "RUWIDO";
-static const char proto_ir60[] PROGMEM = "IR60";
-static const char proto_kathrein[] PROGMEM = "KATHREIN";
-static const char proto_netbox[] PROGMEM = "NETBOX";
-static const char proto_nec16[] PROGMEM = "NEC16";
-static const char proto_nec42[] PROGMEM = "NEC42";
-static const char proto_lego[] PROGMEM = "LEGO";
-static const char proto_thomson[] PROGMEM = "THOMSON";
-static const char proto_bose[] PROGMEM = "BOSE";
-static const char proto_a1tvbox[] PROGMEM = "A1TVBOX";
-
-
-const PGM_P const irmp_proto_names[] PROGMEM = {
-  proto_unknown,
-  proto_sircs,
-  proto_nec,
-  proto_samsung,
-  proto_matshushita,
-  proto_kaseikyo,
-  proto_recs80,
-  proto_rc5x,
-  proto_denon,
-  proto_rc6,
-  proto_samsung32,
-  proto_apple,
-  proto_recs80ext,
-  proto_nubert,
-  proto_bang_olufsen,
-  proto_grundig,
-  proto_nokia,
-  proto_siemens,
-  proto_fdc,
-  proto_rccar,
-  proto_jvc,
-  proto_rc6a,
-  proto_nikon,
-  proto_ruwido,
-  proto_ir60,
-  proto_kathrein,
-  proto_netbox,
-  proto_nec16,
-  proto_nec42,
-  proto_lego,
-  proto_thomson,
-  proto_bose,
-  proto_a1tvbox,
-};
 #endif
 
 

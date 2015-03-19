@@ -3,11 +3,9 @@
  *
  * DO NOT INCLUDE THIS FILE, WILL BE INCLUDED BY IRSND.H!
  *
- * Copyright (c) 2010-2013 Frank Meyer - frank(at)fli4l.de
+ * Copyright (c) 2010-2014 Frank Meyer - frank(at)fli4l.de
  *
- * $Id: irsndconfig.h,v 1.48 2013/03/12 12:49:59 fm Exp $
- *
- * ATMEGA88 @ 8 MHz
+ * $Id: irsndconfig.h,v 1.63 2014/09/15 10:27:38 fm Exp $
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +20,8 @@
 #if !defined(_IRSND_H_)
 #  error please include only irsnd.h, not irsndconfig.h
 #endif
+
+//~ #define IRSND_DEBUG 1                                   // activate debugging
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------
  * F_INTERRUPTS: number of interrupts per second, should be in the range from 10000 to 20000, typically 15000
@@ -45,9 +45,9 @@
 #define IRSND_SUPPORT_SAMSUNG_PROTOCOL          1       // Samsung + Samsung32  >= 10000                 ~300 bytes
 #define IRSND_SUPPORT_MATSUSHITA_PROTOCOL       1       // Matsushita           >= 10000                 ~200 bytes
 #define IRSND_SUPPORT_KASEIKYO_PROTOCOL         1       // Kaseikyo             >= 10000                 ~300 bytes
-#define IRSND_SUPPORT_DENON_PROTOCOL            1       // DENON, Sharp         >= 10000                 ~200 bytes
 
 // more protocols, enable here!                 Enable  Remarks                 F_INTERRUPTS            Program Space
+#define IRSND_SUPPORT_DENON_PROTOCOL            0       // DENON, Sharp         >= 10000                 ~200 bytes
 #define IRSND_SUPPORT_RC5_PROTOCOL              0       // RC5                  >= 10000                 ~150 bytes
 #define IRSND_SUPPORT_RC6_PROTOCOL              0       // RC6                  >= 10000                 ~250 bytes
 #define IRSND_SUPPORT_RC6A_PROTOCOL             0       // RC6A                 >= 10000                 ~250 bytes
@@ -62,17 +62,24 @@
 // exotic protocols, enable here!               Enable  Remarks                 F_INTERRUPTS            Program Space
 #define IRSND_SUPPORT_KATHREIN_PROTOCOL         0       // Kathrein             >= 10000                 DON'T CHANGE, NOT SUPPORTED YET!
 #define IRSND_SUPPORT_NUBERT_PROTOCOL           0       // NUBERT               >= 10000                 ~100 bytes
+#define IRSND_SUPPORT_SPEAKER_PROTOCOL          0       // SPEAKER              >= 10000                 ~100 bytes
 #define IRSND_SUPPORT_BANG_OLUFSEN_PROTOCOL     0       // Bang&Olufsen         >= 10000                 ~250 bytes
 #define IRSND_SUPPORT_RECS80_PROTOCOL           0       // RECS80               >= 15000                 ~100 bytes
 #define IRSND_SUPPORT_RECS80EXT_PROTOCOL        0       // RECS80EXT            >= 15000                 ~100 bytes
 #define IRSND_SUPPORT_THOMSON_PROTOCOL          0       // Thomson              >= 10000                 ~250 bytes
 #define IRSND_SUPPORT_NIKON_PROTOCOL            0       // NIKON                >= 10000                 ~150 bytes
 #define IRSND_SUPPORT_NETBOX_PROTOCOL           0       // Netbox keyboard      >= 10000                 DON'T CHANGE, NOT SUPPORTED YET!
+#define IRSND_SUPPORT_ORTEK_PROTOCOL            0       // ORTEK (Hama)         >= 10000                 DON'T CHANGE, NOT SUPPORTED YET!
+#define IRSND_SUPPORT_TELEFUNKEN_PROTOCOL       0       // Telefunken 1560      >= 10000                 ~150 bytes
 #define IRSND_SUPPORT_FDC_PROTOCOL              0       // FDC IR keyboard      >= 10000 (better 15000)  ~150 bytes
 #define IRSND_SUPPORT_RCCAR_PROTOCOL            0       // RC CAR               >= 10000 (better 15000)  ~150 bytes
-#define IRSND_SUPPORT_RUWIDO_PROTOCOL           0       // RUWIDO, T-Home       >= 15000                 DON'T CHANGE, NOT SUPPORTED YET!
+#define IRSND_SUPPORT_ROOMBA_PROTOCOL           0       // iRobot Roomba        >= 10000                 ~150 bytes
+#define IRSND_SUPPORT_RUWIDO_PROTOCOL           0       // RUWIDO, T-Home       >= 15000                 ~250 bytes
 #define IRSND_SUPPORT_A1TVBOX_PROTOCOL          0       // A1 TV BOX            >= 15000 (better 20000)  ~200 bytes
 #define IRSND_SUPPORT_LEGO_PROTOCOL             0       // LEGO Power RC        >= 20000                 ~150 bytes
+#define IRSND_SUPPORT_RCMM_PROTOCOL             0       // RCMM 12,24, or 32    >= 20000                 DON'T CHANGE, NOT SUPPORTED YET!
+#define IRSND_SUPPORT_LGAIR_PROTOCOL            0       // LG Air Condition     >= 10000                 ~150 bytes.
+#define IRSND_SUPPORT_SAMSUNG48_PROTOCOL        0       // Samsung48            >= 10000                 ~100 bytes
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------
  * AVR section:
@@ -89,28 +96,34 @@
 #  define IRSND_OCx                             IRSND_OC2B              // use OC2B
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------
- * PIC C18 section:
+ * PIC C18 or XC8 section:
  *
  * Change hardware pin here:                    IRSND_PIC_CCP1 = RC2 on PIC 18F2550/18F4550, ...
  *                                              IRSND_PIC_CCP2 = RC1 on PIC 18F2550/18F4550, ...
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-#elif defined(PIC_C18)
+#elif defined(PIC_C18)                                                  // C18 or XC8 compiler
+# if defined(__12F1840)                                                 // XC8 compiler
+#  define Pre_Scaler                            1                       // define prescaler for timer2 e.g. 1,4,16
+#  define F_CPU                                 32000000UL              // PIC frequency: set your freq here
+#  define PIC_Scaler                            2                       // PIC needs /2 extra in IRSND_FREQ_32_KHZ calculation for right value
+
+# else                                                                  // C18 compiler
 #  define IRSND_OCx                             IRSND_PIC_CCP2          // Use PWMx for PIC
                                                                         // change other PIC C18 specific settings:
 #  define F_CPU                                 48000000UL              // PIC frequency: set your freq here
 #  define Pre_Scaler                            4                       // define prescaler for timer2 e.g. 1,4,16
 #  define PIC_Scaler                            2                       // PIC needs /2 extra in IRSND_FREQ_32_KHZ calculation for right value
-#  warning Timer2 used for IRSND (PWM out) ! Do not use/setup Timer 2 yourself !
+# endif
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------
  * ARM STM32 section:
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-#elif defined (ARM_STM32)                                               // use A6 as IR output on STM32
-#  define IRSND_PORT_LETTER                     A
+#elif defined (ARM_STM32)                                               // use B6 as IR output on STM32
+#  define IRSND_PORT_LETTER                     B
 #  define IRSND_BIT_NUMBER                      6
-#  define IRSND_TIMER_NUMBER                    10
+#  define IRSND_TIMER_NUMBER                    4
 #  define IRSND_TIMER_CHANNEL_NUMBER            1                       // only channel 1 can be used at the moment, others won't work
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------

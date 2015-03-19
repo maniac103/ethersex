@@ -1,7 +1,7 @@
 /*
  * Copyright (c) Gregor B.
  * Copyright (c) 2009 Dirk Pannenbecker <dp@sd-gp.de>
- * Copyright (c) 2012-13 by Erik Kunze <ethersex@erik-kunze.de>
+ * Copyright (c) 2012-14 by Erik Kunze <ethersex@erik-kunze.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,11 +24,20 @@
 #ifndef __RFM12_ASK_H
 #define __RFM12_ASK_H
 
-void rfm12_ask_tevion_send(uint8_t *, uint8_t *, uint8_t, uint8_t);
-void rfm12_ask_2272_send(uint8_t *, uint8_t, uint8_t);
-void rfm12_ask_1527_send(uint8_t *, uint8_t, uint8_t);
-void rfm12_ask_intertechno_send(uint8_t, uint8_t, uint8_t, uint8_t);
-void rfm12_ask_oase_send(uint8_t *, uint8_t, uint8_t);
+#include <stdint.h>
+
+#include "hardware/radio/rfm12/rfm12.h"
+
+
+#define ASK_TX_ENABLE \
+	rfm12_prologue(RFM12_MODULE_ASK); \
+	rfm12_trans(RFM12_CMD_PWRMGT | RFM12_PWRMGT_ET | RFM12_PWRMGT_ES | RFM12_PWRMGT_EX);
+#define ASK_TX_DISABLE \
+	rfm12_trans(RFM12_CMD_PWRMGT | RFM12_PWRMGT_EX); \
+	rfm12_epilogue();
+#define ASK_TX_TRIGGER \
+	rfm12_ask_trigger
+
 void rfm12_ask_trigger(uint8_t, uint16_t);
 void rfm12_ask_external_filter_init(void);
 void rfm12_ask_external_filter_deinit(void);

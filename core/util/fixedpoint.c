@@ -30,9 +30,11 @@
 /* Attention: returns the length in bytes, not a pointer like the regular
  * itoa this is more convenient for use in output to ECMDs output buffer */
 uint8_t
-itoa_fixedpoint(int16_t n, uint8_t fixeddigits, char s[])
+itoa_fixedpoint(int16_t n, uint8_t fixeddigits, char s[], uint8_t size)
 {
   uint8_t len = 0;
+  if (size <= 1)
+    return 0;
 
   if (n < 0)
   {
@@ -40,56 +42,32 @@ itoa_fixedpoint(int16_t n, uint8_t fixeddigits, char s[])
     n = -n;
   }
 
-  /* Anzahl Stellen bestimmen */
+/* Number of digits to output */
+/* Output at least fixeddigits + 1 digits */
   uint8_t digits = 1;
-  int16_t m = 10;
-  while (m <= n)
+  int16_t m = 1;
+  while ((m <= n / 10) || (digits < fixeddigits + 1))
   {
     m *= 10;
     digits++;
   }
-  m /= 10;
 
-  /* Vorkommastellen? */
-  if (digits <= fixeddigits)
+  size--;
+  while (digits > 0 && len < size)
   {
-    s[len++] = '0';
-  }
-  else
-  {
-    /* Vorkommastellen ausgeben */
-    while (digits > fixeddigits)
+    uint8_t i;
+/* Decimal point? */
+    if (digits == fixeddigits)
     {
-      uint8_t i;
-      for (i = '0'; n >= m; n -= m, i++);
+      s[len++] = '.';
+    }
+    for (i = '0'; n >= m; n -= m, i++);
+    if (len < size)
       s[len++] = i;
-      m /= 10;
-      digits--;
-    }
+    m /= 10;
+    digits--;
   }
 
-  /* Nachkommastellen? */
-  if (fixeddigits)
-  {
-    s[len++] = '.';
-
-    /* Mit Nullen auffüllen */
-    while (digits < fixeddigits)
-    {
-      s[len++] = '0';
-      fixeddigits--;
-    }
-
-    /* Nachkommestellen ausgeben */
-    while (fixeddigits)
-    {
-      uint8_t i;
-      for (i = '0'; n >= m; n -= m, i++);
-      s[len++] = i;
-      m /= 10;
-      fixeddigits--;
-    }
-  }
   s[len] = '\0';
 
   return len;

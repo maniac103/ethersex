@@ -137,7 +137,7 @@ main (void)
 
   //FIXME: zum ethersex meta system hinzufügen, aber vor allem anderem initalisieren
   debug_init();
-  debug_printf("Ethersex " VERSION_STRING " (Debug mode)\n");
+  debug_printf("ethersex " VERSION_STRING_LONG " (Debug mode)\n");
 
 #ifdef DEBUG_RESET_REASON
   if (bit_is_set (mcusr_mirror, BORF))
@@ -215,7 +215,11 @@ main (void)
     if (sd_active_partition == NULL)
     {
       if (!sd_try_init())
+      {
+#ifdef VFS_SD_SUPPORT
         vfs_sd_try_open_rootnode();
+#endif
+      }
       wdt_kick();
     }
 #endif

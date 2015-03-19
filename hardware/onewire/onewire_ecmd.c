@@ -122,8 +122,10 @@ parse_cmd_onewire_list(char *cmd, char *output, uint16_t len)
 
 #endif
 #ifdef ONEWIRE_ECMD_LIST_VALUES_SUPPORT
-        char temperature[6];
-        itoa_fixedpoint(ow_sensors[i].temp, 1, temperature);
+        char temperature[7];
+        itoa_fixedpoint(ow_sensors[i].temp.val,
+                        ow_sensors[i].temp.twodigits + 1, temperature,
+                        sizeof(temperature));
 #endif
         ret = snprintf_P(output, len, PSTR("%02x%02x%02x%02x%02x%02x%02x%02x"
 #ifdef ONEWIRE_NAMING_SUPPORT
@@ -135,15 +137,14 @@ parse_cmd_onewire_list(char *cmd, char *output, uint16_t len)
 #ifdef ONEWIRE_ECMD_LIST_POWER_SUPPORT
                                            "\t%d"
 #endif
-                         )
-                         , ow_sensors[i].ow_rom_code.bytewise[0]
-                         , ow_sensors[i].ow_rom_code.bytewise[1]
-                         , ow_sensors[i].ow_rom_code.bytewise[2]
-                         , ow_sensors[i].ow_rom_code.bytewise[3]
-                         , ow_sensors[i].ow_rom_code.bytewise[4]
-                         , ow_sensors[i].ow_rom_code.bytewise[5]
-                         , ow_sensors[i].ow_rom_code.bytewise[6]
-                         , ow_sensors[i].ow_rom_code.bytewise[7]
+                         ), ow_sensors[i].ow_rom_code.bytewise[0],
+                         ow_sensors[i].ow_rom_code.bytewise[1],
+                         ow_sensors[i].ow_rom_code.bytewise[2],
+                         ow_sensors[i].ow_rom_code.bytewise[3],
+                         ow_sensors[i].ow_rom_code.bytewise[4],
+                         ow_sensors[i].ow_rom_code.bytewise[5],
+                         ow_sensors[i].ow_rom_code.bytewise[6],
+                         ow_sensors[i].ow_rom_code.bytewise[7]
 #ifdef ONEWIRE_NAMING_SUPPORT
                          , name
 #endif
@@ -357,19 +358,11 @@ parse_cmd_onewire_get(char *cmd, char *output, uint16_t len)
     /* search the sensor... */
     ow_sensor_t *sensor = ow_find_sensor(&rom);
     if (sensor != NULL)
-    {
-      /* found it */
-      int16_t temp = sensor->temp;
-      uint8_t sign = temp < 0;
-      div_t res = div(abs(temp), 10);
-      ret = snprintf_P(output, len, PSTR("%S%d.%1u"),
-                       sign ? PSTR("-") : PSTR(""), res.quot, res.rem);
-
-      return ECMD_FINAL(itoa_fixedpoint(temp, 1, output));
-    }
-    /* sensor is not in list */
-    ret = snprintf_P(output, len, PSTR("sensor not in list!"));
-    return ECMD_FINAL(ret);
+      ret =
+        itoa_fixedpoint(sensor->temp.val, sensor->temp.twodigits + 1,
+                        output, len);
+    else
+      ret = snprintf_P(output, len, PSTR("sensor not in list!"));
 #ifdef ONEWIRE_DS2502_SUPPORT
   }
   else if (ow_eeprom(&rom))
@@ -399,19 +392,15 @@ parse_cmd_onewire_get(char *cmd, char *output, uint16_t len)
   {
     debug_printf("unknown sensor type\n");
 #ifdef TEENSY_SUPPORT
-    strcpy_P(output, PSTR("unknown sensor type"));
-    return ECMD_FINAL(strlen(output));
+    strncpy_P(output, PSTR("unknown sensor type"), len);
+    ret = strlen(output);
 #else
     ret = snprintf_P(output, len, PSTR("unknown sensor type"));
 #endif
   }
-
   return ECMD_FINAL(ret);
-
 }
-#else
-
-
+#else /* ONEWIRE_POLLING_SUPPORT */
 int16_t
 parse_cmd_onewire_get(char *cmd, char *output, uint16_t len)
 {
@@ -448,33 +437,9 @@ parse_cmd_onewire_get(char *cmd, char *output, uint16_t len)
     }
 
     debug_printf("successfully read scratchpad\n");
-
-    int16_t temp = ow_temp_normalize(&rom, &sp);
-
-    debug_printf("temperature: %d.%d\n", HI8(temp), LO8(temp) > 0 ? 5 : 0);
-
-    int8_t sign = (int8_t) (temp < 0);
-
-#ifdef TEENSY_SUPPORT
-    if (sign)
-    {
-      temp = -temp;
-      output[0] = '-';
-    }
-    /* Here sign is 0 or 1 */
-    itoa(HI8(temp), output + sign, 10);
-    char *ptr = output + strlen(output);
-
-    *(ptr++) = '.';
-    itoa(HI8(((temp & 0x00ff) * 10) + 0x80), ptr, 10);
-    return ECMD_FINAL(strlen(output));
-#else
-    if (sign)
-      temp = -temp;
-    ret = snprintf_P(output, len, PSTR("%s%d.%1d"),
-                     sign ? "-" : "", (int8_t) HI8(temp),
-                     HI8(((temp & 0x00ff) * 10) + 0x80));
-#endif
+    ow_temp_t temp = ow_temp_normalize(&rom, &sp);
+    ret = itoa_fixedpoint(temp.val, temp.twodigits + 1, output, len);
+    debug_printf("temperature: %s\n", output);
 
 #ifdef ONEWIRE_DS2502_SUPPORT
   }
@@ -505,8 +470,8 @@ parse_cmd_onewire_get(char *cmd, char *output, uint16_t len)
   {
     debug_printf("unknown sensor type\n");
 #ifdef TEENSY_SUPPORT
-    strcpy_P(output, PSTR("unknown sensor type"));
-    return ECMD_FINAL(strlen(output));
+    strncpy_P(output, PSTR("unknown sensor type"), len);
+    ret = strlen(output);
 #else
     ret = snprintf_P(output, len, PSTR("unknown sensor type"));
 #endif
@@ -514,10 +479,15 @@ parse_cmd_onewire_get(char *cmd, char *output, uint16_t len)
 
   return ECMD_FINAL(ret);
 }
-#endif
+#endif /* ONEWIRE_POLLING_SUPPORT */
 
-
-#ifndef ONEWIRE_POLLING_SUPPORT
+#ifdef ONEWIRE_POLLING_SUPPORT
+int16_t
+parse_cmd_onewire_convert(char *cmd, char *output, uint16_t len)
+{
+  return ECMD_FINAL_OK;
+}
+#else
 int16_t
 parse_cmd_onewire_convert(char *cmd, char *output, uint16_t len)
 {
@@ -594,7 +564,8 @@ parse_cmd_onewire_name_set(char *cmd, char *output, uint16_t len)
   ow_sensors[pos].ow_rom_code.raw = rom.raw;
   strncpy(ow_sensors[pos].name, name, OW_NAME_LENGTH);
 #ifdef ONEWIRE_POLLING_SUPPORT
-  ow_sensors[pos].temp = 0;
+  ow_sensors[pos].temp.val = 0;
+  ow_sensors[pos].temp.twodigits = 0;
   ow_polling_interval = 1;
 #endif
 
@@ -606,7 +577,8 @@ parse_cmd_onewire_name_set(char *cmd, char *output, uint16_t len)
       ow_sensors[i].named = 0;
 #ifdef ONEWIRE_POLLING_SUPPORT
       ow_sensors[i].present = 0;
-      ow_sensors[i].temp = 0;
+      ow_sensors[i].temp.val = 0;
+      ow_sensors[i].temp.twodigits = 0;
 #endif
     }
   }
@@ -716,9 +688,7 @@ parse_cmd_onewire_name_save(char *cmd, char *output, uint16_t len)
   ecmd_else()
     ecmd_feature(onewire_get, "1w get", DEVICE, Return temperature value of onewire device (provide 64-bit ID as 16-hex-digits))
   ecmd_endif()
-  ecmd_ifndef(ONEWIRE_POLLING_SUPPORT)
-    ecmd_feature(onewire_convert, "1w convert", DEVICE, Trigger temperature conversion of either DEVICE or all connected devices)
-  ecmd_endif()
+  ecmd_feature(onewire_convert, "1w convert", DEVICE, Trigger temperature conversion of either DEVICE or all connected devices)
   ecmd_ifdef(ONEWIRE_NAMING_SUPPORT)
     ecmd_feature(onewire_name_set, "1w name set", ID DEVICE NAME, Assign a name to/from an device address)
     ecmd_feature(onewire_name_clear, "1w name clear", ID, Delete a name mapping)

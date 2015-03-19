@@ -85,7 +85,7 @@ function define_bool () {
 }
 
 function define_symbol () {
-	true	# nothing to do, for the moment ...
+	eval $1=$2
 }
 
 function define_hex () {
@@ -282,6 +282,17 @@ function ipv6 () {
 	echo -ne "'$2' '     $1: \"$x\"$info' " >>MCmenu
 
 	echo -e "function $2 () { l_ipv6 '$1' '$2' '$3' '$x' ;}" >>MCradiolists
+}
+
+#
+# Negate the boolean value. Usesful for dep_XXX
+#
+function not() {
+	if [ "$1" = "y" ] ; then
+		echo -ne "n"
+	else
+		echo -ne "y"
+	fi
 }
 
 #

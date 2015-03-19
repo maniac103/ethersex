@@ -1,9 +1,9 @@
 /*---------------------------------------------------------------------------------------------------------------------------------------------------
  * irmpsystem.h - system specific includes and defines
  *
- * Copyright (c) 2009-2013 Frank Meyer - frank(at)fli4l.de
+ * Copyright (c) 2009-2014 Frank Meyer - frank(at)fli4l.de
  *
- * $Id: irmpsystem.h,v 1.8 2013/01/17 07:33:13 fm Exp $
+ * $Id: irmpsystem.h,v 1.14 2014/09/15 10:27:38 fm Exp $
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,9 @@
 
 #if defined(__18CXX)                                                                // Microchip PIC C18 compiler
 #  define PIC_C18
+#elif defined(__XC8)                                                                // PIC XC8 compiler
+#  include <xc.h>
+#  define PIC_C18
 #elif defined(__PCM__) || defined(__PCB__) || defined(__PCH__)                      // CCS PIC compiler
 #  define PIC_CCS
 #elif defined(STM32L1XX_MD) || defined(STM32L1XX_MDP) || defined(STM32L1XX_HD)      // ARM STM32
@@ -34,6 +37,7 @@
 #  include <stm32f10x.h>
 #  define ARM_STM32
 #  define ARM_STM32F10X
+#  define F_CPU (SysCtlClockGet())
 #elif defined(STM32F4XX)                                                            // ARM STM32
 #  include <stm32f4xx.h>
 #  define ARM_STM32
@@ -41,7 +45,7 @@
 #elif defined(TARGET_IS_BLIZZARD_RA2)                                                                                           // TI Stellaris (tested on Stellaris Launchpad with Code Composer Studio)
 #  define STELLARIS_ARM_CORTEX_M4
 #  define F_CPU (SysCtlClockGet())
-#elif defined(unix) || defined(WIN32)                                               // Unix/Linux or Windows
+#elif defined(unix) || defined(WIN32) || defined(__APPLE__)                         // Unix/Linux or Windows or Apple
 #  define UNIX_OR_WINDOWS
 #else
 #  define ATMEL_AVR                                                                 // ATMEL AVR
@@ -54,7 +58,6 @@
 #  include <stdlib.h>
 #  define F_CPU 8000000L
 #  define ANALYZE
-#  define DEBUG
 #  ifdef unix
 #    include <stdint.h>
 #  else
@@ -93,6 +96,13 @@ typedef unsigned short                  uint16_t;
 #  define PROGMEM volatile
 #  define memcpy_P memcpy
 #  define APP_SYSTICKS_PER_SEC          32
+#elif defined(ARM_STM32F10X)
+#  include "stm32f10x_gpio.h"
+#  include "stm32f10x_rcc.h"
+#  include "stm32f10x_tim.h"
+#  include "misc.h"
+#  define PROGMEM
+#  define memcpy_P                      memcpy
 #else
 #  define PROGMEM
 #  define memcpy_P                      memcpy
@@ -103,10 +113,12 @@ typedef unsigned char                   uint8_t;
 typedef unsigned short                  uint16_t;
 #endif
 
-#if defined (PIC_C18)
+#if defined (PIC_C18)                                                               // PIC C18 or XC8 compiler
 #  include <p18cxxx.h>                                                              // main PIC18 h file
+#ifndef __XC8
 #  include <timers.h>                                                               // timer lib
 #  include <pwm.h>                                                                  // pwm lib
+#endif
 #  define IRSND_PIC_CCP1                1                                           // PIC C18 RC2 = PWM1 module
 #  define IRSND_PIC_CCP2                2                                           // PIC C18 RC1 = PWM2 module
 #endif
