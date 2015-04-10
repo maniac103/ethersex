@@ -86,10 +86,6 @@ ifdef(`conf_HD44780_BACKLIGHT', `
   pin(HD44780_BL, PB1, OUTPUT)
 ')
 
-ifdef(`conf_EMS', `
-  pin(EMS_UART_TX, PD3)
-')
-
 ifdef(`conf_STATUSLED_EMS_TX', `
 pin(STATUSLED_EMS_TX, PD4, OUTPUT)
 ')

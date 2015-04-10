@@ -81,8 +81,10 @@ ems_uart_init(void)
 {
   usart_init();
 
-  PIN_CLEAR(EMS_UART_TX);
-  DDR_CONFIG_OUT(EMS_UART_TX);
+  /* PIN_CLEAR(TXDn) */
+  PORT_CHAR(usart(TXD, _PORT)) &= ~_BV(usart(TXD, _PIN));
+  /* DDR_CONFIG_OUT(TXDn) */
+  DDR_CHAR(usart(TXD, _PORT)) |= _BV(usart(TXD, _PIN));
 
   TC2_PRESCALER_8;
   TC2_MODE_CTC;
