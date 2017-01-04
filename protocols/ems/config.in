@@ -22,4 +22,3 @@ else
 	comment "EMS not available. No free USART. ($USARTS_USED/$USARTS)"
 	define_bool EMS_SUPPORT n
 fi
-

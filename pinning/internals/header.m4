@@ -60,6 +60,10 @@ define(`port_mask_D', 0)
 define(`port_mask_E', 0)
 define(`port_mask_F', 0)
 define(`port_mask_G', 0)
+define(`port_mask_H', 0)
+define(`port_mask_J', 0)
+define(`port_mask_K', 0)
+define(`port_mask_L', 0)
 
 define(`ddr_mask_A', 0)
 define(`ddr_mask_B', 0)
@@ -68,6 +72,10 @@ define(`ddr_mask_D', 0)
 define(`ddr_mask_E', 0)
 define(`ddr_mask_F', 0)
 define(`ddr_mask_G', 0)
+define(`ddr_mask_H', 0)
+define(`ddr_mask_J', 0)
+define(`ddr_mask_K', 0)
+define(`ddr_mask_L', 0)
 
 dnl forloop-implementation from gnu m4 example scripts ...
 # forloop(var, from, to, stmt) - simple version
@@ -378,7 +386,49 @@ define(`HD44780_PCF8574x_MAPPING', `dnl
 #define HD44780_PCF8574x_BL ($9)
 ')
 
-divert(1)
+dnl Map LCD with multiple HD44780 to PCF8574x I2C-Expander
+dnl
+dnl HD44780_PCF8574x_MAPPING(ADR,RS,RW,EN1,EN2,DB4,DB5,DB6,DB7)
+dnl ADR - PCF8574x I2C address
+dnl RS, RW, EN1, EN2 - LCD control
+dnl DB4..DB7 - LCD data (4-Bit mode)
+dnl
+dnl Note: Map PCF8574x PORT-numbers, not Pin-Numbers.
+define(`HD44780_PCF8574x_MULTI_MAPPING', `dnl
+
+/* Map LCD with multiple HD44780 (e.g. WDC2704M))
+ * to PCF8574x connection
+ */
+#define HD44780_PCF8574x_ADR ($1)
+#define HD44780_PCF8574x_RS ($2)
+#define HD44780_PCF8574x_WR ($3)
+#define HD44780_PCF8574x_EN1 ($4)
+#define HD44780_PCF8574x_EN2 ($5)
+#define HD44780_PCF8574x_DB4 ($6)
+#define HD44780_PCF8574x_DB5 ($7)
+#define HD44780_PCF8574x_DB6 ($8)
+#define HD44780_PCF8574x_DB7 ($9)
+')
+
+define(`PERIODIC_USE_TIMER', `dnl
+
+/* Configure 16 Bit timer/counter used from core/periodic.
+ * Default is timer/counter unit 1, but some MCUs support
+ * a second 16 Bit timer/counter unit numbered 3.
+ */
+#define PERIODIC_MODE_PWMFAST_OCR     format(TC%s_MODE_PWMFAST_OCR, $1)
+#define PERIODIC_PRESCALER_1          format(TC%s_PRESCALER_1, $1)
+#define PERIODIC_PRESCALER_8          format(TC%s_PRESCALER_8, $1)
+#define PERIODIC_PRESCALER_64         format(TC%s_PRESCALER_64, $1)
+#define PERIODIC_INT_COMPARE_ON       format(TC%s_INT_COMPARE_ON, $1)
+#define PERIODIC_INT_OVERFLOW_ON      format(TC%s_INT_OVERFLOW_ON, $1)
+#define PERIODIC_COUNTER_CURRENT      format(TC%s_COUNTER_CURRENT, $1)
+#define PERIODIC_COUNTER_COMPARE      format(TC%s_COUNTER_COMPARE, $1)
+#define PERIODIC_VECTOR_COMPARE       format(TC%s_VECTOR_COMPARE, $1)
+#define PERIODIC_VECTOR_OVERFLOW      format(TC%s_VECTOR_OVERFLOW, $1)
+')
+
+divert(define_divert)
 `
 #ifndef _PINNING_HEADER
 #define _PINNING_HEADER
@@ -409,3 +459,5 @@ divert(1)
 #define PIN_PULSE(pin) do { PORT_CHAR(pin ## _PORT) &= ~_BV(pin ## _PIN); \
                             PORT_CHAR(pin ## _PORT) ^=  _BV(pin ## _PIN); \
                           } while(0)'
+
+PERIODIC_USE_TIMER(value_PERIODIC_USE_TIMER)

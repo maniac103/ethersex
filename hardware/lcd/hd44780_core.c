@@ -26,20 +26,20 @@
 #include "hd44780.h"
 #include "config.h"
 #include "core/debug.h"
+#include "core/bit-macros.h"
 
 /* global variables */
 FILE lcd = FDEV_SETUP_STREAM (hd44780_put, NULL, _FDEV_SETUP_WRITE);
 uint8_t current_pos = 0;
+#ifdef HD44780_BACKLIGHT_SUPPORT
 uint8_t back_light = 0;
+#endif
 
 
 
 #define LCD_MAX_CHAR LCD_CHAR_PER_LINE * LCD_LINES
 
 #define BUSY_FLAG 7
-
-#define HIGH_NIBBLE(x) ((uint8_t)((x) >> 4))
-#define LOW_NIBBLE(x)  ((uint8_t)((x) & 0x0f))
 
 /* display commands */
 #define CMD_CLEAR_DISPLAY()     _BV(0)
@@ -64,8 +64,8 @@ static noinline uint8_t input_byte(uint8_t rs, uint8_t en);
 
 void output_byte(uint8_t rs, uint8_t data, uint8_t en)
 {
-    output_nibble(rs, HIGH_NIBBLE(data), en);
-    output_nibble(rs, LOW_NIBBLE(data), en);
+    output_nibble(rs, HI4(data), en);
+    output_nibble(rs, LO4(data), en);
 
 #ifdef HD44780_READBACK
     /* wait until command is executed by checking busy flag, with timeout */
@@ -139,7 +139,7 @@ void hd44780_init(void)
     hd44780_hw_init();
     _delay_ms(40);
 
-#if HD44780_TYPE == HD44780_KS0066U
+#if CONF_HD44780_TYPE == HD44780_KS0066U
     /* Hardware initialisiert -> Standardprozedur KS0066U Datenblatt 4bit Mode */
     output_nibble(0, 0x02, 1);
 #else
@@ -164,7 +164,7 @@ void hd44780_init(void)
     output_nibble(0, 0x02,1);		//4bit mode
     _delay_ms(1);
     /* init done */
-#endif /*HD44780_TYPE*/
+#endif /*CONF_HD44780_TYPE*/
 
     /* configure for 4 bit, 2 lines, 5x8 font (datasheet, page 24) */
     output_byte(0, CMD_FUNCTIONSET(0, 1, 0), 1);
@@ -186,7 +186,7 @@ void hd44780_init(void)
     hd44780_hw_init();
     _delay_ms(40);
 
-#if HD44780_TYPE == HD44780_KS0066U
+#if CONF_HD44780_TYPE == HD44780_KS0066U
     /* Hardware initialisiert -> Standardprozedur KS0066U Datenblatt 4bit Mode */
     output_nibble(0, 0x02, 2);
 #else

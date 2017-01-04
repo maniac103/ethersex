@@ -33,6 +33,12 @@
 #include "protocols/bsbport/bsbport_tx.h"
 #include "protocols/ecmd/ecmd-base.h"
 
+#ifdef DEBUG_BSBPORT_ECMD
+#define BSBPORT_DEBUG(s, ...) debug_printf("BSB " s "\n", ## __VA_ARGS__);
+#else
+#define BSBPORT_DEBUG(a...) do {} while(0)
+#endif
+
 int16_t
 parse_cmd_bsbport_stats(const char *const cmd, char *output,
                         const uint16_t len)
@@ -68,9 +74,7 @@ parse_cmd_bsbport_list(char *const cmd, char *output, const uint16_t len)
       || (bsbport_msg_buffer.msg[i].p.raw == 0))
     return ECMD_FINAL_OK;
 
-#ifdef DEBUG_BSBPORT_ECMD
-  debug_printf("ECMD(%d) list MSG: %d ", len, i);
-#endif
+  BSBPORT_DEBUG("ECMD(%d) list MSG: %d ", len, i);
 
   int16_t ret = 0;
   ret =
@@ -98,9 +102,7 @@ parse_cmd_bsbport_list(char *const cmd, char *output, const uint16_t len)
 
   i++;
 
-#ifdef DEBUG_BSBPORT_ECMD
-  debug_printf("ECMD list write %d bytes", ret);
-#endif
+  BSBPORT_DEBUG("ECMD list write %d bytes", ret);
 
   cmd[1] = i;
   return ECMD_AGAIN(ret);
@@ -128,10 +130,8 @@ parse_cmd_bsbport_get(const char *cmd, char *output, const uint16_t len)
     sscanf_P(cmd, PSTR("%hhi %hhi %hhi %hhi %hhi %3s"), &p1, &p2, &p3, &p4,
              &src, type);
 
-#ifdef DEBUG_BSBPORT_ECMD
-  debug_printf("ECMD(%d) get MSG ARGS:%d %3s %02x %02x %02x %02x ", len, ret,
+  BSBPORT_DEBUG("ECMD(%d) get MSG ARGS:%d %3s %02x %02x %02x %02x ", len, ret,
                type, p1, p2, p3, p4);
-#endif
 
   if (ret == 6)
   {
@@ -144,44 +144,45 @@ parse_cmd_bsbport_get(const char *cmd, char *output, const uint16_t len)
           && bsbport_msg_buffer.msg[i].p.data.p4 == p4
           && (bsbport_msg_buffer.msg[i].src & 0x0F) == src)
       {
-#ifdef DEBUG_BSBPORT_ECMD
-        debug_printf("ECMD get MSG found at: %02d ", i);
-#endif
-        if (strcmp_P(type, PSTR("RAW")) == 0)
+        BSBPORT_DEBUG("ECMD get MSG found at: %02d ", i);
+
+        if (type[0] == 'R') //get RAW value
         {
           ret =
             snprintf_P(output, len, PSTR("%u"),
                        bsbport_msg_buffer.msg[i].value);
         }
-        else if (strcmp_P(type, PSTR("STA")) == 0)
+        else if (type[0] == 'S') //get SELECT/SEL value
         {
           ret =
             snprintf_P(output, len, PSTR("%u"),
                        HI8(bsbport_msg_buffer.msg[i].value));
         }
-        else if (strcmp_P(type, PSTR("TMP")) == 0)
+        else if (type[0] == 'T') //get TEMP/TMP value
         {
           ret =
             itoa_fixedpoint(((int32_t) bsbport_msg_buffer.msg[i].value *
                              100) / 64, 2, output, len);
         }
-        else if (strcmp_P(type, PSTR("FP1")) == 0)
+        else if (type[0] == 'F') //get FP1/FP5 value
         {
-          ret =
-            itoa_fixedpoint(bsbport_msg_buffer.msg[i].value, 1, output, len);
-        }
-        else if (strcmp_P(type, PSTR("FP5")) == 0)
-        {
-          ret =
-            itoa_fixedpoint(bsbport_msg_buffer.msg[i].value * 10 / 2, 1,
-                            output, len);
+          if (type[2] == '1') //set FP1 value
+          {
+            ret =
+              itoa_fixedpoint(bsbport_msg_buffer.msg[i].value, 1, output, len);
+          }
+          else if (type[2] == '5') //get FP5 value
+          {
+            ret =
+              itoa_fixedpoint(bsbport_msg_buffer.msg[i].value * 10 / 2, 1,
+                              output, len);
+          }
         }
         else
           return ECMD_ERR_PARSE_ERROR;
 
-#ifdef DEBUG_BSBPORT_ECMD
-        debug_printf("ECMD get write %d bytes", ret);
-#endif
+        BSBPORT_DEBUG("ECMD get write %d bytes", ret);
+
         return ECMD_FINAL(ret);
       }
     }
@@ -235,52 +236,51 @@ parse_cmd_bsbport_set(const char *const cmd, char *output, const uint16_t len)
   sscanf_P(strvalue, PSTR("%i"), &raw_val);
   next_int16_fp(strvalue, &fp_val, 1);
 
-#ifdef DEBUG_BSBPORT_ECMD
-  debug_printf("ECMD(%d) set MSG ARGS:%d %02x %02x %02x %02x %3s %s %d %u\n",
+  BSBPORT_DEBUG("ECMD(%d) set MSG ARGS:%d %02x %02x %02x %02x %3s %s %d %u\n",
                len, ret, p1, p2, p3, p4, type, strvalue, fp_val, raw_val);
-#endif
 
   if (ret == 7)
   {
     uint8_t data[3];
     uint8_t datalen = 3;
     data[0] = 0x01;
-    if (strcmp_P(type, PSTR("RAW")) == 0)
+    if (type[0] == 'R') //set RAW value
     {
       data[1] = HI8(raw_val);
       data[2] = LO8(raw_val);
     }
-    else if (strcmp_P(type, PSTR("SEL")) == 0)
+    else if (type[0] == 'S') //set SELECT/SEL value
     {
       data[1] = LO8(raw_val);
       datalen = 2;
     }
-    else if (strcmp_P(type, PSTR("TMP")) == 0)
+    else if (type[0] == 'T') //set TEMP/TMP value
     {
       int16_t tmp;
       tmp = ((int32_t) fp_val * 64) / 10;
       data[1] = HI8(tmp);
       data[2] = LO8(tmp);
     }
-    else if (strcmp_P(type, PSTR("FP1")) == 0)
+    else if (type[0] == 'F') //set FP1/FP5 value
     {
-      data[1] = HI8(fp_val);
-      data[2] = LO8(fp_val);
-    }
-    else if (strcmp_P(type, PSTR("FP5")) == 0)
-    {
-      int16_t tmp;
-      tmp = fp_val * 2 / 10;
-      data[1] = HI8(tmp);
-      data[2] = LO8(tmp);
+      if (type[2] == '1') //set FP1 value
+      {
+        data[1] = HI8(fp_val);
+        data[2] = LO8(fp_val);
+      }
+      else if (type[2] == '5') //set FP1 value
+      {
+        int16_t tmp;
+        tmp = fp_val * 2 / 10;
+        data[1] = HI8(tmp);
+        data[2] = LO8(tmp);
+      }
     }
     else
       return ECMD_ERR_PARSE_ERROR;
 
-#ifdef DEBUG_BSBPORT_ECMD
-    debug_printf("ECMD set parsed data: %02x %02x %02x %02d ", data[0],
+    BSBPORT_DEBUG("ECMD set parsed data: %02x %02x %02x %02d ", data[0],
                  data[1], data[2], datalen);
-#endif
 
     if (bsbport_set(p1, p2, p3, p4, dest, data, datalen))
       return ECMD_FINAL_OK;

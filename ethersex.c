@@ -43,6 +43,8 @@
 
 #include "autoconf.h"
 
+#include "version.h"
+
 /* global configuration */
 global_status_t status;
 
@@ -137,7 +139,7 @@ main (void)
 
   //FIXME: zum ethersex meta system hinzufügen, aber vor allem anderem initalisieren
   debug_init();
-  debug_printf("ethersex " VERSION_STRING_LONG " (Debug mode)\n");
+  debug_printf("%S (Debug mode)\n", pstr_E6_VERSION_STRING_LONG);
 
 #ifdef DEBUG_RESET_REASON
   if (bit_is_set (mcusr_mirror, BORF))
@@ -232,7 +234,7 @@ main (void)
       write_mbr();
 #endif
 #ifdef CLOCK_CRYSTAL_SUPPORT
-      TC2_INT_OVERFLOW_OFF;
+      TIMER_8_AS_1_INT_OVERFLOW_OFF;
 #endif
 #ifdef DCF77_SUPPORT
       ACSR &= ~_BV (ACIE);

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) Rudolg Koenig (culfw)
- * Copyright (c) 2012-13 Erik Kunze <ethersex@erik-kunze.de>
+ * Copyright (c) 2012-15 Erik Kunze <ethersex@erik-kunze.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,6 +24,7 @@
 #include <util/parity.h>
 
 #include "config.h"
+#include "core/bit-macros.h"
 
 #include "rfm12.h"
 #include "rfm12_fs20_lib.h"
@@ -46,7 +47,7 @@
 /* tolerated diff to previous/avg high/low/total */
 #define TDIFF          US2TICK(200)
 /* End of message */
-#define SILENCE        US2TICK(4000)
+#define SILENCE        4000
 
 #define STATE_RESET    0
 #define STATE_INIT     1
@@ -148,12 +149,12 @@ cksum3(uint8_t * buf, uint8_t len)
   while (len)
   {
     uint8_t d = buf[--len];
-    x ^= (d >> 4);
-    y += (d >> 4);
+    x ^= HI4(d);
+    y += HI4(d);
     if (!nibble || cnt)
     {
-      x ^= (d & 0xf);
-      y += (d & 0xf);
+      x ^= LO4(d);
+      y += LO4(d);
     }
     cnt++;
   }
@@ -362,15 +363,15 @@ analyze_TX3(bucket_t * b)
     {
       n = getbits(&in, 8, 1);
     }
-    crc = crc + (n >> 4) + (n & 0xf);
+    crc = crc + HI4(n) + LO4(n);
     obuf[oby] = n;
   }
 
   obuf[oby] = getbits(&in, 7, 1) << 1;
-  crc = (crc + (obuf[oby] >> 4)) & 0xF;
+  crc = LO4(crc + HI4(obuf[oby]));
   oby++;
 
-  if ((crc >> 4) != 0 || (obuf[0] >> 4) != 0xA)
+  if (HI4(crc) != 0 || HI4(obuf[0]) != 0xA)
     return 0;
 
   return 1;
@@ -479,13 +480,13 @@ rfm12_fs20_lib_process(fs20_data_t * fs20_data_p)
 
         if (roby == oby)
         {
-          uint32_t elapsed_time = ticks;
+          uint32_t elapsed_time = FS20_TIMER_TICKS;
           if (elapsed_time < reptime)
-            elapsed_time += ticks_per_second;
+            elapsed_time += FS20_TIMER_TICKSPERSEC;
           elapsed_time -= reptime;
 
           /* ~0.2 sec */
-          if (elapsed_time < (ticks_per_second / 5))
+          if (elapsed_time < (FS20_TIMER_TICKSPERSEC / 5))
             isrep = 1;
         }
       }
@@ -493,7 +494,7 @@ rfm12_fs20_lib_process(fs20_data_t * fs20_data_p)
       /* save the data */
       for (roby = 0; roby < oby; roby++)
         robuf[roby] = obuf[roby];
-      reptime = ticks;
+      reptime = FS20_TIMER_TICKS;
     }
 
     if (datatype == TYPE_FHT && !(rx_report & REP_FHTPROTO) &&
@@ -559,14 +560,14 @@ rfm12_fs20_lib_process(fs20_data_t * fs20_data_p)
 static void
 reset_input(void)
 {
-  FS20_TIMER_INT_OFF;
+  FS20_TIMER_STOP;
   bucket_array[bucket_in].state = STATE_RESET;
 }
 
 static void
 rfm12_fs20_lib_rx_timeout(void)
 {
-  FS20_TIMER_INT_OFF;           /* Disable "us" */
+  FS20_TIMER_STOP;              /* Disable "us" */
 
 #ifdef DEBUG_ASK_FS20
   if (rx_report & REP_MONITOR)
@@ -685,14 +686,14 @@ rfm12_fs20_lib_rx_level_changed(uint8_t c, uint8_t is_raising_edge)
       )
     {
       addbit(b, 1);
-      FS20_TIMER_CNT_CURR = 0;
+      FS20_TIMER_RESTART;
     }
     hightime = c;
     return;
   }
 
   lowtime = c - hightime;
-  FS20_TIMER_CNT_CURR = 0;      /* restart timer */
+  FS20_TIMER_RESTART;           /* restart timer */
   if ((b->state == STATE_HMS)
 #ifdef RFM12_ASK_ESA_SUPPORT
       || (b->state == STATE_ESA)
@@ -724,7 +725,7 @@ rfm12_fs20_lib_rx_level_changed(uint8_t c, uint8_t is_raising_edge)
     }
     else if (b->sync >= 4)
     {                           /* the one bit at the end of the 0-sync */
-      FS20_TIMER_CNT_COMP = SILENCE;
+      uint16_t to = SILENCE;
 
       if (b->sync >= 12 &&
           (b->zero.hightime + b->zero.lowtime) > US2TICK(1600))
@@ -737,7 +738,7 @@ rfm12_fs20_lib_rx_level_changed(uint8_t c, uint8_t is_raising_edge)
       {
         b->state = STATE_ESA;
 
-        FS20_TIMER_CNT_COMP = US2TICK(1000);
+        to = 1000;
       }
 #endif
       else
@@ -751,7 +752,8 @@ rfm12_fs20_lib_rx_level_changed(uint8_t c, uint8_t is_raising_edge)
       b->bitidx = 7;
       b->data[0] = 0;
 
-      FS20_TIMER_INT_ON;        /* On timeout analyze the data */
+      FS20_TIMER_TIMEOUT(to);
+      FS20_TIMER_START ;        /* On timeout analyze the data */
     }
     else
     {                           /* too few sync bits */
@@ -785,5 +787,6 @@ rfm12_fs20_lib_init(void)
 {
   for (uint8_t i = 1; i < RCV_BUCKETS; i++)
     bucket_array[i].state = STATE_RESET;
-  FS20_TIMER_CNT_COMP = SILENCE;
+  FS20_TIMER_TIMEOUT(SILENCE);
+  FS20_TIMER_INIT;
 }

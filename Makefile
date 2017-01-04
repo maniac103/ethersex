@@ -99,37 +99,42 @@ debug:
 ${ECMD_PARSER_SUPPORT}_SRC += ${y_ECMD_SRC}
 ${SOAP_SUPPORT}_SRC += ${y_SOAP_SRC}
 
-meta.m4: ${SRC} ${y_SRC} .config
-	@echo "Build meta files"
-	$(SED) -ne '/Ethersex META/{n;:loop p;n;/\*\//!bloop }' ${SRC} ${y_SRC} > $@.tmp
-	@echo "Copying to meta.m4"
-	@if [ ! -e $@ ]; then cp $@.tmp $@; fi
-	@if ! diff $@.tmp $@ >/dev/null; then cp $@.tmp $@; fi
-	@$(RM) -f $@.tmp
-
 $(ECMD_PARSER_SUPPORT)_NP_SIMPLE_META_SRC = protocols/ecmd/ecmd_defs.m4 ${named_pin_simple_files}
 $(SOAP_SUPPORT)_NP_SIMPLE_META_SRC = protocols/ecmd/ecmd_defs.m4 ${named_pin_simple_files}
 
+ifeq ($(SCHEDULER_SUPPORT), y)
+y_META_SRC += scripts/meta_magic_scheduler.m4
+else
 y_META_SRC += scripts/meta_magic.m4
+endif
 $(ECMD_PARSER_SUPPORT)_META_SRC += protocols/ecmd/ecmd_magic.m4
 $(SOAP_SUPPORT)_META_SRC += protocols/soap/soap_magic.m4
 y_META_SRC += meta.m4
 $(ECMD_PARSER_SUPPORT)_META_SRC += protocols/ecmd/ecmd_defs.m4 ${named_pin_simple_files}
 y_META_SRC += $(y_NP_SIMPLE_META_SRC)
 
+meta.m4: ${SRC} ${y_SRC} .config
+	@echo "Build meta files"
+	$(SED) -ne '/Ethersex META/{n;:loop p;n;/\*\//!bloop }' ${SRC} ${y_SRC} > $@.tmp
+	@echo "Copying to meta.m4"
+	@if [ ! -e $@ ]; then cp -v $@.tmp $@; \
+		elif ! diff $@.tmp $@ >/dev/null; then cp -v $@.tmp $@; else echo "$@ unaltered"; fi
+	@$(RM) -f $@.tmp
+
 meta.defines: autoconf.h pinning.c
 	scripts/m4-defines > $@.tmp
 	$(SED) -e "/^#define [A-Z].*_PIN /!d" -e "s/^#define \([^ 	]*\)_PIN.*/-Dpin_\1/;s/[()]/_/g" pinning.c >> $@.tmp
-	$(SED) -e ':a' -e 'N' -e '$$!ba' -e 's/\n/ /g' $@.tmp > $@
-	$(RM) $@.tmp
+	$(SED) -e ':a' -e 'N' -e '$$!ba' -e 's/\n/ /g' $@.tmp > $@.new
+	@echo "Copying to meta.defines"
+	@if [ ! -e $@ ]; then cp -v $@.new $@; \
+		elif ! diff $@.new $@ >/dev/null; then cp -v $@.new $@; else echo "$@ unaltered"; fi
+	@$(RM) -f $@.tmp $@.new
 
-$(y_META_SRC): meta.defines
+meta.c: meta.defines $(y_META_SRC)
+	$(M4) $(M4FLAGS) `cat meta.defines` $(filter-out $<,$^) > $@
 
-meta.c: $(y_META_SRC)
-	$(M4) `cat meta.defines` $^ > $@
-
-meta.h: scripts/meta_header_magic.m4 meta.m4
-	$(M4) `cat meta.defines` $^ > $@
+meta.h: meta.defines scripts/meta_header_magic.m4 meta.m4
+	$(M4) `cat meta.defines` $(filter-out $<,$^) > $@
 
 ##############################################################################
 
@@ -139,10 +144,14 @@ compile-$(TARGET): $(TARGET).hex $(TARGET).bin
 .SILENT: compile-$(TARGET)
 
 OBJECTS += $(patsubst %.c,%.o,${SRC} ${y_SRC} meta.c)
+OBJECTS += $(patsubst %.c,%.o,${AUTOGEN_SRC} ${y_AUTOGEN_SRC})
 OBJECTS += $(patsubst %.S,%.o,${ASRC} ${y_ASRC})
 
+# Do not add version.c to SRC or OBJECTS!
+# Compile version.c at link time ensures correct built time, ref. issue #448
 $(TARGET): $(OBJECTS)
-	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) -lm -lc # Pixie Dust!!! (Bug in avr-binutils)
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c version.c
+	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) version.o -lm -lc # Pixie Dust!!! (Bug in avr-binutils)
 
 SIZEFUNCARG ?= -e printf -e scanf -e divmod
 size-check: $(OBJECTS) ethersex
@@ -205,7 +214,7 @@ ifeq ($(CRC_PAD_SUPPORT),y)
 endif
 
 embed/%: embed/%.cpp
-	@if ! avr-cpp -xc -DF_CPU=$(FREQ) -I$(TOPDIR) -include autoconf.h $< 2> /dev/null > $@.tmp; \
+	@if ! avr-cpp -xc -P -DF_CPU=$(FREQ) -I$(TOPDIR) -include autoconf.h $< 2> /dev/null > $@.tmp; \
 	  then $(RM) $@; echo "--> Don't include $@ ($<)"; \
 	  else $(SED) '/^$$/d; /^#[^#]/d' <$@.tmp > $@; echo "--> Include $@ ($<)";  \
 	fi
@@ -292,6 +301,7 @@ clean:
 		$(patsubst %.o,%.E,${OBJECTS}) \
 		$(patsubst %.o,%.s,${OBJECTS}) network.dep
 	$(RM) meta.c meta.h meta.m4 meta.defines
+	$(RM) $(AUTOGEN_SRC) $(y_AUTOGEN_SRC)
 	echo "Cleaning completed"
 
 fullclean: clean

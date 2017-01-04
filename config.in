@@ -1,4 +1,5 @@
 source scripts/usart-config.sh
+source scripts/periodic-config.sh
 source scripts/rfm12-config.sh
 source scripts/namedPinCopy.sh
 source scripts/avrdude_config.sh
@@ -31,6 +32,7 @@ if [ "$ARCH_AVR" = "y" ]; then
 		 ATmega644    atmega644		\
 		 ATmega644p   atmega644p	\
 		 ATmega1284p  atmega1284p	\
+		 ATmega2560   atmega2560	\
 		 AT90CAN32    at90can32		\
 		 AT90CAN64    at90can64		\
 		 AT90CAN128   at90can128"	\
@@ -47,7 +49,7 @@ if [ "$ARCH_AVR" = "y" ]; then
 
 
 	# get the flash size according to the cpu type
-	FLASH_SIZE=$((`echo -e "#include <avr/io.h>\nFLASHEND" | avr-cpp -mmcu=$MCU | sed '$!d'` + 1 ))
+	FLASH_SIZE=$((`echo -e "#include <avr/io.h>\nFLASHEND" | avr-cpp -P -mmcu=$MCU | sed '$!d'` + 1 ))
 
 	# set the default bootloader bytes according to cpu flash size
 	if [ "$BOOTLOADER_SIZE" = "" ] ; then
@@ -70,10 +72,10 @@ if [ "$ARCH_AVR" = "y" ]; then
 	define_hex BOOTLOADER_START_ADDRESS "$(printf '0x%X\n' $(($FLASH_SIZE - $BOOTLOADER_SIZE)))"
 
 	define_hex FLASH_SIZE "$(printf '0x%X\n' $FLASH_SIZE)"
-	define_hex EEPROM_SIZE "$(printf '0x%X\n' $((`echo -e "#include <avr/io.h>\nE2END" | avr-cpp -mmcu=$MCU | sed '$!d'` + 1)))"
-	define_hex RAM_SIZE "$(printf '0x%X\n' $((`echo -e "#include <avr/io.h>\nRAMEND" | avr-cpp -mmcu=$MCU | sed '$!d'` + 1)))"
-	define_hex FLASH_PAGESIZE "$(printf '0x%X\n' $((`echo -e "#include <avr/io.h>\nSPM_PAGESIZE" | avr-cpp -mmcu=$MCU | sed '$!d'`)))"
-	define_hex EEPROM_PAGESIZE "$(printf '0x%X\n' $((`echo -e "#include <avr/io.h>\nE2PAGESIZE" | avr-cpp -mmcu=$MCU | sed '$!d'`)))"
+	define_hex EEPROM_SIZE "$(printf '0x%X\n' $((`echo -e "#include <avr/io.h>\nE2END" | avr-cpp -P -mmcu=$MCU | sed '$!d'` + 1)))"
+	define_hex RAM_SIZE "$(printf '0x%X\n' $((`echo -e "#include <avr/io.h>\nRAMEND-RAMSTART" | avr-cpp -P -mmcu=$MCU | sed '$!d'` + 1)))"
+	define_hex FLASH_PAGESIZE "$(printf '0x%X\n' $((`echo -e "#include <avr/io.h>\nSPM_PAGESIZE" | avr-cpp -P -mmcu=$MCU | sed '$!d'`)))"
+	define_hex EEPROM_PAGESIZE "$(printf '0x%X\n' $((`echo -e "#include <avr/io.h>\nE2PAGESIZE" | avr-cpp -P -mmcu=$MCU | sed '$!d'`)))"
 
 	source core/crc/config.in
 fi
@@ -284,7 +286,6 @@ mainmenu_option next_comment
 	dep_bool '  OpenVPN' DEBUG_OPENVPN $DEBUG
 	dep_bool '  Router' DEBUG_ROUTER $DEBUG
 	dep_bool '  uIP' DEBUG_UIP $DEBUG
-	dep_bool '  NTP' DEBUG_NTP $DEBUG
 	dep_bool '  Unknown packets' DEBUG_UNKNOWN_PACKETS $DEBUG_NET
 
 endmenu

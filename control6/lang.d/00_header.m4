@@ -68,9 +68,7 @@ divert(0)dnl
 #ifdef NAMED_PIN_SUPPORT
 #include "core/portio/user_config.h"
 #endif
-#include "protocols/ecmd/sender/ecmd_sender_net.h"
 #include "protocols/uip/uip_router.h"
-
 #include "protocols/uip/uip.h"
 #include "control6.h"
 

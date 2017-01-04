@@ -28,6 +28,7 @@
 #include <avr/eeprom.h>
 
 #include "config.h"
+#include "version.h"
 #include "core/debug.h"
 #include "core/heartbeat.h"
 #include "protocols/uip/uip.h"
@@ -194,7 +195,6 @@ parse_cmd_free(char *cmd, char *output, uint16_t len)
 
   size_t f =
     (size_t) (__brkval ? (size_t) __brkval : (size_t) & __heap_start);
-  size_t allram = RAMEND;
 
   /* we want an output like this:
    * free: 16234/32768
@@ -206,7 +206,7 @@ parse_cmd_free(char *cmd, char *output, uint16_t len)
     case 0:
       return ECMD_AGAIN(snprintf_P(output, len,
                                    PSTR("free: %u/%u"),
-                                   SP - f, allram));
+                                   SP - f, RAM_SIZE));
     case 1:
       return ECMD_AGAIN(snprintf_P(output, len,
                                    PSTR("heap: %u"),
@@ -223,7 +223,10 @@ parse_cmd_version(char *cmd, char *output, uint16_t len)
 {
   (void) cmd;
 
-  return ECMD_FINAL(snprintf_P(output, len, PSTR("ethersex " VERSION_STRING_LONG)));
+  strncpy_P(output, pstr_E6_VERSION_STRING_LONG, len);
+  output[len - 1] = '\0';
+
+  return ECMD_FINAL(strlen(output));
 }
 
 int16_t

@@ -1,9 +1,10 @@
-/* 
+/*
  * Copyright (c) 2009 Dirk Tostmann <tostmann@busware.de>
  * Copyright (c) 2010 Thomas Kaiser
+ * Copyright (c) 2015 Michael Brakemeier <michael@brakemeier.de>
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by 
+ * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
@@ -24,6 +25,7 @@
 #include <util/twi.h>
 
 #include "config.h"
+#include "core/bit-macros.h"
 #include "i2c_master.h"
 #include "i2c_ds13x7.h"
 #include <string.h>
@@ -140,7 +142,7 @@ i2c_ds13x7_get(uint8_t reg)
 uint8_t
 b2i(uint8_t bcd)
 {
-  return 10 * (bcd >> 4) + (bcd & 0xf);
+  return 10 * HI4(bcd) + LO4(bcd);
 }
 
 uint8_t
@@ -160,6 +162,13 @@ i2c_ds13x7_sync(uint32_t timestamp)
   memset(&rtc, 0, sizeof(rtc));
 
   clock_localtime(&d, timestamp);
+
+#ifdef DEBUG_I2C
+  debug_printf(
+      "I2C: i2c_ds13x7_sync: 0x%X (%d) : %02d%02d-%02d-%02d (%d) %02d:%02d:%02d\n",
+      I2C_SLA_DS13X7, I2C_SLA_DS13X7, (d.year >= 100 ? 20 : 19), (d.year % 100),
+      d.month, d.day, d.dow, d.hour, d.min, d.sec);
+#endif
 
   rtc.ch = 0;
   rtc.sec = i2b(d.sec);
@@ -191,7 +200,10 @@ i2c_ds13x7_read(void)
   d.day = b2i(rtc.date);
   d.month = b2i(rtc.month & 0x1f);
   d.year = b2i(rtc.year);
+#if I2C_DS13X7_TYPE != DS1307
+  // DS1307 does not have a century flag
   if (rtc.century)
+#endif
     d.year += 100;
   return clock_mktime(&d, 1);
 #else

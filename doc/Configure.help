@@ -319,6 +319,18 @@ PROTO_INTERTECHNO_SL_SUPPORT
     - Klik aan Klik uit
     - ...
 
+Flamingo FA20RF/ELRO KD101 
+PROTO_FA20RF_SUPPORT
+  Depends on: 
+   * Radio outlets (433MHz) (PROTO_ASK_SUPPORT)
+
+  Enable support for the wireless interconnectable smoke detectors
+  Flamingo FA20RF, ELRO KD101, and compatible.
+
+  Each detector or a group of interconnected detectors has a uniq
+  24bit id. By sending this id the smoke detector switches to alarm
+  mode for five seconds. 
+
 RFM12 ASK external filter enables external filter Support
 RFM12_ASK_EXTERNAL_FILTER_SUPPORT
   Depends on:
@@ -493,34 +505,49 @@ DCF77_SUPPORT
 
 Synchronize using NTP protocol
 NTP_SUPPORT
-  Depends on:
+  Depends on: 
    * System clock support (CLOCK_SUPPORT)
    * UDP support (UDP_SUPPORT)
 
   Synchronize the system clock via NTP.
 
-NTP Fully Qualified NTP-Server Name
+NTP Server
 NTP_SERVER
+ Depends on:
+   * DNS support (DNS_SUPPORT)
+
  Enter the FQDN of your NTP-Server right here.  The server name depends on
  IPv4/IPv6.
 
-NTP Server IP Address
+NTP IP
 NTP_SERVER_IP
+
  This IP depends on your IPv4 or IPv6 selection and provides
  to set the correct NTP-Server IP Address for your network.
  Useful during disabled DNS operations.
 
-NTP Server Port Number
+NTP Port
 NTP_PORT
+
  The Port Number for your NTP-Server
   Default is 123
 
 NTP query interval (seconds)
 NTP_QUERY_INTERVAL
+
  The NTP query interval is the amount of time in seconds
  between NTP query messages are sent to the NTP server.
    The default value is 1800 seconds.
    The minimum value is 60 seconds.
+
+NTP daemon
+NTPD_SUPPORT
+  Depends on: 
+   * System clock support (CLOCK_SUPPORT)
+   * Use 32 kHz crystal to tick the clock (CLOCK_CRYSTAL_SUPPORT)
+   * UDP support (UDP_SUPPORT)
+
+  Enable NTP server.
 
 Cron daemon
 CRON_SUPPORT
@@ -607,14 +634,6 @@ CRON_ANACRON_MAXAGE
 
   Maximum time span covered by CRON_ANACRON_SUPPORT in secs. Default is
   86400 secs (one day).
-
-NTP daemon
-NTPD_SUPPORT
-  Depends on:
-   * System clock support (CLOCK_SUPPORT)
-   * UDP support (UDP_SUPPORT)
-
-  Enable NTP server.
 
 Working hour meter
 WHM_SUPPORT
@@ -908,19 +927,6 @@ ECMD_SENDER_SUPPORT
   hardware, PCs, etc.).
 
   This is especially useful with the option 'Watch IO changes'.
-
-Onewire support
-ONEWIRE_SUPPORT
-  Add support for Dallas 1-wire.
-
-Onewire device detection support
-ONEWIRE_DETECT_SUPPORT
-  Add support for automatic 1-wire device detection, i.e. scan
-  bus for attached devices.
-
-Onewire DS2502 (eeprom) support
-ONEWIRE_DS2502_SUPPORT
-  Support DS2502 1-wire EEPROMs.
 
 Named and logic state I/O
 NAMED_PIN_SUPPORT
@@ -2105,8 +2111,9 @@ Inline OneWire
 ONEWIRE_INLINE_SUPPORT
   Depends on:
    * Onewire support (ONEWIRE_SUPPORT)
+   * Onewire DS18XX (temperature) support (ONEWIRE_DS18XX_SUPPORT)
+   * 1w list (ONEWIRE_ECMD_LIST_SUPPORT)
    * VFS File Inlining (VFS_INLINE_SUPPORT)
-   * Onewire support (ONEWIRE_SUPPORT)
 
   Powerful page for onewire support, with AJAX and SVG technology.
 
@@ -2223,45 +2230,29 @@ LOME6_SUPPORT
   GUI source (Qt4) is available in services/lome6/lome6-gui
 
 
-Onewire Polling
-ONEWIRE_POLLING_SUPPORT
-  Depends on:
+Onewire support
+ONEWIRE_SUPPORT
+  Add support for Dallas 1-wire.
+
+
+Onewire DS18XX (temperature) support
+ONEWIRE_DS18XX_SUPPORT
+  Depends on: 
    * Onewire support (ONEWIRE_SUPPORT)
-   * Onewire device detection support (ONEWIRE_DETECT_SUPPORT)
 
-  If enabled, ethersex will run a discovery every OW_DISCOVER_DELAY seconds.
-  After the discovery, new sensors will be added to the list and old/defect
-  sensors will be removed from the list.
-  Each sensor discovered will then be polled every OW_READ_DELAY seconds and
-  the temperature stored (cached). The advantage of this feature is that
-  onewire opererates without any noticeable lags compared to the 800 ms lag
-  in normal operation mode. Also it is easier to have multiple applications
-  requesting sensor information since more request will not increase traffic
-  on the onewire bus.
-  The cons include higher memory consumption and a certain delay (max.
-  OW_READ_DELAY).
+  Support DS1820, DS18B20 and DS1822 1-wire temperature sensors.
+
+Onewire DS2502 (eeprom) support
+ONEWIRE_DS2502_SUPPORT
+  Support DS2502 1-wire EEPROMs.
 
 
-ECMD 1w list with values
-ONEWIRE_ECMD_LIST_VALUES_SUPPORT
-  Depends on:
+Onewire DS2450 (4 channel ADC) support
+ONEWIRE_DS2450_SUPPORT
+  Depends on: 
    * Onewire support (ONEWIRE_SUPPORT)
-   * Onewire polling support (ONEWIRE_POLLING_SUPPORT)
 
-  Show values (currently only temperature) on "1w list" command. This saves
-  successive calls to get the value for each sensor. Fields are separated by
-  tab.
-
-
-ECMD 1w list with power mode
-ONEWIRE_ECMD_LIST_POWER_SUPPORT
-  Depends on:
-   * Onewire Polling (ONEWIRE_POLLING_SUPPORT)
-
-  Show the power mode of each onewire node on "1w list" command. Fields are
-  separated by tab.
-  0: parasitic powered
-  1: non-parasitic powered
+  Support DS2450 1-wire 4 channel ADC.
 
 
 Onewire naming support
@@ -2286,7 +2277,6 @@ Onewire SNMP support
 ONEWIRE_SNMP_SUPPORT
   Depends on:
    * Onewire support (ONEWIRE_SUPPORT)
-   * Onewire polling support (ONEWIRE_POLLING_SUPPORT)
    * SNMP Support (SNMP_SUPPORT)
 
   Make the onewire values (currently only temperature) available via SNMP. The
@@ -2301,22 +2291,40 @@ ONEWIRE_SNMP_SUPPORT
   ID corresponds with the ID of the name mapping table.
 
 
-Time between discoveries in 0.8s steps
+Hooks
+ONEWIRE_HOOK_SUPPORT
+  Depends on:
+   * Onewire support (ONEWIRE_SUPPORT)
+
+  Support for callback hooks. For details see hook.def in the top directory.
+
+
+Time between 1w-bus discoveries in 1s steps
 OW_DISCOVER_DELAY
+  Depends on:
+   * Onewire support (ONEWIRE_SUPPORT)
 
-  Time between discoveries of new sensors. 1 unit is 0.8s.
-  Example:
-  Input 750 will lead to a discovery every 10 minutes.
+  Ethersex will run a discovery every OW_DISCOVER_DELAY seconds.  After the
+  discovery, new sensors will be added to the list and old/defect
+  sensors will be removed from the list.
+  Each sensor discovered will then be polled every OW_READ_DELAY seconds and
+  the temperature stored (cached). The advantage of this feature is that
+  onewire opererates without any noticeable lags compared to the 800 ms lag
+  in normal operation mode. Also it is easier to have multiple applications
+  requesting sensor information since more request will not increase traffic
+  on the onewire bus.
+  The cons include higher memory consumption and a certain delay (max.
+  OW_READ_DELAY).
 
-Time between polling in 0.8s steps
-OW_READ_DELAY
 
-  Time between polling for new temperatures. 1 unit is 0.8s.
-  Example:
-  Input 75 will lead to a temperature update-rate of 1 minute.
+Time between polling in 1s steps
+OW_POLLING_INTERVAL
+  Depends on:
+   * Onewire support (ONEWIRE_SUPPORT)
 
-  Please adjust this value if you need more precise data (e.g. climate cabinet).
-  It should be save to go down to 5 seconds (~ 6 units)
+  Each sensor discovered will then be polled every OW_READ_DELAY seconds and
+  the temperature stored (cached).
+
 
 Maximum sensor count
 OW_SENSORS_COUNT
@@ -2324,10 +2332,42 @@ OW_SENSORS_COUNT
   How many sensors you expect in your setup. Make sure this value is high
   enough!
 
+
+1w list
+ONEWIRE_ECMD_LIST_SUPPORT
+  Depends on: 
+   * Onewire support (ONEWIRE_SUPPORT)
+
+  List detected 1-wire sensors.
+
+
+ECMD 1w list with values
+ONEWIRE_ECMD_LIST_VALUES_SUPPORT
+  Depends on:
+   * Onewire DS18XX (temperature) support (ONEWIRE_DS18XX_SUPPORT)
+   * 1w list (ONEWIRE_ECMD_LIST_SUPPORT)
+
+  Show values (currently only temperature) on "1w list" command. This saves
+  successive calls to get the value for each sensor. Fields are separated by
+  tab.
+
+
+ECMD 1w list with power mode
+ONEWIRE_ECMD_LIST_POWER_SUPPORT
+  Depends on:
+   * Onewire DS18XX (temperature) support (ONEWIRE_DS18XX_SUPPORT)
+   * 1w list (ONEWIRE_ECMD_LIST_SUPPORT)
+
+  Show the power mode of each onewire node on "1w list" command. Fields are
+  separated by tab.
+  0: parasitic powered
+  1: non-parasitic powered
+
+
 Frequency counter
 FREQCOUNT_SUPPORT
   Incompatible with:
-   * CLOCK_CPU_SUPPORT
+   * CLOCK_PERIODIC_SUPPORT
 
   If enabled, the frequency on the ICP1 pin is constantly sampled and stored
   in a variable. It can then be retrieved with code or ECMD.
@@ -2558,10 +2598,23 @@ CONF_ARTNET_PORT
 
   on which UDP port ethersex listens for artnet data
 
+Output IP
+CONF_ARTNET_OUTPUT_IP
+
+  the target for artnet data
+
+Send Poll Reply
+CONF_ARTNET_SEND_POLL_REPLY
+
+  When true, an acknowledge poll reply will be sent after
+  each data frame.
+  Set to false to reduce traffic.
+
 Art-Net Node
 ARTNET_SUPPORT
   Depends on:
    * DMX Storage (DMX_STORAGE_SUPPORT)
+   * UDP broadcast support (BROADCAST_SUPPORT)
    * UDP support (UDP_SUPPORT)
    * NET_MAX_FRAME_LENGTH > 571
 
@@ -2577,7 +2630,7 @@ HTTPLOG_BUFFER_LEN
 Backlight support
 HD44780_BACKLIGHT_SUPPORT
 
-  Backlight support for HD44780 LCD with direct connection.
+  Backlight support for LCDs based on the HD44780 controller.
 
 Tank level meter
 TANKLEVEL_SUPPORT
@@ -2890,12 +2943,6 @@ ELTAKOMS_SUPPORT
   38 Checksum          Checksum 4th digit (ones)
   39 0x03              End
 
-Hooks
-ONEWIRE_HOOK_SUPPORT
-  Depends on:
-   * Onewire Polling (ONEWIRE_POLLING_SUPPORT)
-
-  Support for callback hooks. For details see hook.def in the top directory.
 
 MBR support
 MBR_SUPPORT
@@ -3188,6 +3235,7 @@ Remote IRMP
 REMOTE_IRMP_SUPPORT
   Depends on: 
    * IRMP IR (IRMP_SUPPORT)
+   * UDP support (UDP_SUPPORT)
 
   Control your HiFi equipment with your smartphone.
   For details see https://www.mikrocontroller.net/articles/Remote_IRMP
@@ -3224,3 +3272,203 @@ BSBPORT_POLLING_SUPPORT
    * BSBPort Support (BSBPORT_SUPPORT)
 
   If activated one query defined in bsbport_polling.c get executed every 3sec.
+
+BSBPORT MQTT Support
+BSBPORT_MQTT_SUPPORT
+  Depends on:
+   * MQTT client (MQTT_SUPPORT)
+
+  Publish every received message to mqtt broker. Broker setup must be done unter mqtt static configuration.
+  There is one mqtt callback slot used, so make sure there are enough free slots.
+
+MQTT topic
+BSBPORT_MQTT_TOPIC
+
+  This is the base path for all mqtt messages.
+  Topic for publish BSBPORT_MQTT_TOPIC/SOURCE/MSG_ADDRESS/VALUE_TYPE payload is the value.
+  Topic for querys BSBPORT_MQTT_TOPIC/query/DESTINATION/MSG_ADDRESS payload can by anything.
+  Topic for setting values BSBPORT_MQTT_TOPIC/set/DESTINATION/MSG_ADDRESS/VALUE_TYPE payload is the value send.
+
+FAT date/time support
+SD_DATETIME_SUPPORT
+  Depends on: 
+   * SD/MMC-Card Filesystem (VFS_SD_SUPPORT)
+   * System clock support (CLOCK_SUPPORT)
+   * Date and Time support (CLOCK_DATETIME_SUPPORT)
+
+  Support saving modification date and time for files and folders on FAT file systems.
+  If not enabled, files will have a modification date of the 1. January 1980.
+
+Periodic ticks per second
+CONF_MTICKS_PER_SEC
+
+  Specify the periodic tick rate. The periodic framework generates
+  ticks in intervals from 20ms (i.e. 50 Hz) down to 1ms or less,
+  depending on the hardware and modules in use.
+  
+  Periodic ticks are generated by means of interrupts. Do not set
+  higher tick frequencies than required.
+  
+  Periodic ticks have to be multiples of 50. Usable range is
+  50..2000. Default is 50.
+
+Periodic use Timer/Counter 3
+PERIODIC_TIMER3_SUPPORT
+  Depends on: 
+   * y (MCU_HAS_TIMER_3_SUPPORT)
+
+  Several Atmel AVR MCUs (ATmega64, ATmega128, ATmega1284p and some
+  others) have a second 16 Bit Timer/Counter-Unit referred to as
+  Timer/Counter3.
+  
+  The periodic ticks framework can use this timer instead of
+  Timer/Counter1.
+
+Periodic adjust support
+PERIODIC_ADJUST_SUPPORT
+
+  Enable support for periodic tick frequency adjustability.
+  
+  Periodic tick frequency may be tuned +/-25% (or less, depending
+  on the base frequency) to compensate for crystal frequency offset
+  or to adjust the realtime clock.
+  
+  Adds support for the 'periodic adjust' command, if ECMD is enabled.
+
+Periodic general debugging
+DEBUG_PERIODIC
+  Depends on: 
+   * Enable Debugging (DEBUG)
+
+  Enable general debug messages and functions of the
+  periodic ticks framework.
+
+Read periodic debug stats via ECMD
+DEBUG_PERIODIC_ECMD_SUPPORT
+  Depends on: 
+   * Periodic general debugging (DEBUG_PERIODIC)
+   * ECMD (Ethersex Command) support (ECMD_PARSER_SUPPORT)
+
+  Add debug ecmd command 'periodic stats' and 'periodic reset' to query
+  statistic informations from the periodic ticks framework.
+
+Toggle pins in periodic tick
+DEBUG_PERIODIC_WAVEFORMS_SUPPORT
+  Depends on: 
+   * Periodic general debugging (DEBUG_PERIODIC)
+
+  To aid hardware debugging and testing pins may be toggled at *half*
+  the periodic tick and HZ frequencies. This might be useful to verify
+  and adjust the frequencies or to investigate some missing milliticks.
+  
+  Output pins have to be defined in your hardware m4 profile:
+  
+  dnl Example Net-IO use ADC1 / ADC2 screw terminal
+  ifdef(`conf_DEBUG_PERIODIC_WAVEFORMS', `dnl
+    pin(PERIODIC_WAVE25HZ_OUT, PA4, OUTPUT)
+    pin(PERIODIC_WAVETICK_OUT, PA5, OUTPUT)
+  ')dnl
+
+Enable toggling of Timer/Counter OC1A-Pin
+DEBUG_PERIODIC_OC1A_SUPPORT
+  Depends on: 
+   * Toggle pins in periodic tick (DEBUG_PERIODIC_WAVEFORMS_SUPPORT)
+   * Periodic general debugging (DEBUG_PERIODIC)
+
+  Toggle OC1A at *half* the periodic tick frequency using the MCUs
+  hardware compare as a reference signal.
+  
+  dnl OC1A aka PD5 can be found on the Net-IO Ext connector pin 4
+  ifdef(`conf_DEBUG_PERIODIC_OC1A', `dnl
+    pin(PERIODIC_OC1A_OUT, PD5, OUTPUT)dnl
+  ')dnl
+  
+  NOTE: Only available if Timer/Counter3 is *not* enabled.
+
+Periodic timer API support
+PERIODIC_TIMER_API_SUPPORT
+
+  Enable support for the timer API.
+
+  The timer API may be used by other e6-modules to access
+  periodic and timer related functions.
+
+  Enable this one if a module in use depends on it.
+  Developers might have a look into the sources below core/periodic*.
+
+Enable timer/task scheduler
+SCHEDULER_SUPPORT
+  Depends on: 
+
+  Enable the new scheduler framework.
+ 
+  Doing this is generally a good thing, unless you are using
+  a *very* low end MCU.
+
+Enable dynamic timers/tasks
+SCHEDULER_DYNAMIC_SUPPORT
+  Depends on: 
+   * Enable timer/task scheduler (SCHEDULER_SUPPORT)
+
+  Enable support for dynamic timers.
+
+  Developers might have a look into the sources below core/Scheduler/.
+
+Maximum number of dynamic timers/tasks
+CONF_SCHEDULER_NUM_DYNAMIC_TIMERS
+
+  Number of dynamic timers.
+
+  Dynamic timers use a few byte RAM per timer.
+
+I2C MCP23017 16-bit port extension
+I2C_MCP23017_SUPPORT
+  Depends on: 
+   * I2C master (I2C_MASTER_SUPPORT)
+
+  Microchip MCP23017 16-bit I/O Expander support.
+
+  The MCP23017 is a very common and cheap I2C 16-bit I/O expander
+  available in various packages including PDIP.
+
+Invert Backlight switch
+HD44780_BACKLIGHT_INV
+  Depends on: 
+   * HD44780 module driver (Character-LCD) (HD44780_SUPPORT)
+   * Backlight support (HD44780_BACKLIGHT_SUPPORT)
+
+  Backlight is low active. Currently this is implemented for I2C connected HD44780 LCDs only.
+
+Multiple ENABLE support
+HD44780_MULTIENSUPPORT
+  Depends on: 
+   * HD44780 module driver (Character-LCD) (HD44780_SUPPORT)
+
+  Some displays with multiple lines are based on more than one HD44780 controller. 
+  One example is the WDC2704M module with four lines a 27 characters.
+  To display text  on the display's e.G. third line the command needs to be sent to the second controller.
+  Not to double the data lines the different controller can be selected by EN lines.
+  This option takes care of selecting the controller according to the line number.
+
+
+HD44780_I2C
+DEBUG_HD44780_I2C
+  Depends on: 
+   * Enable Debugging (DEBUG)
+   *  (HD44780_I2CSUPPORT)
+
+  This logs the commands send to and read from to LCD via I2C
+
+MODBUS_BAUDRATE
+  Select the baudrate of the serial port for MODBUS RTU (RS485) application
+  
+  Typical values for Modbus applications are:
+  9600
+  19200
+  38400
+
+MODBUS_USART_CONFIG_8N1
+  Select the port mode you want to use with MODBUS:
+  8E1 stands for: 8 data bits, even parity, 1 stop bit (Modbus default)
+  8N1 stands for: 8 data bits, no parity, 1 stop bit
+
